@@ -1,6 +1,6 @@
 # Document Q&A Chatbot (RAG System)
 
-A production-ready Retrieval-Augmented Generation (RAG) chatbot that enables intelligent Q&A over your documents using LangChain, OpenAI, and Streamlit.
+A production-ready Retrieval-Augmented Generation (RAG) chatbot that enables intelligent Q&A over your documents using LangChain, Groq, and Streamlit.
 
 ## Features
 
@@ -25,7 +25,8 @@ The system consists of four main components:
 ### Prerequisites
 
 - Python 3.8 or higher
-- OpenAI API key (for GPT models and OpenAI embeddings)
+- Groq API key (get it from https://console.groq.com/keys)
+- Optional: OpenAI API key (only for OpenAI embeddings)
 
 ### Setup
 
@@ -45,9 +46,9 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and add your OpenAI API key:
+Edit `.env` and add your Groq API key:
 ```
-OPENAI_API_KEY=your-api-key-here
+GROQ_API_KEY=your-api-key-here
 ```
 
 ## Usage
@@ -64,7 +65,7 @@ The app will open in your browser at `http://localhost:8501`
 
 ### Using the Web Interface
 
-1. **Enter API Key**: Paste your OpenAI API key in the sidebar
+1. **Enter API Key**: Paste your Groq API key in the sidebar
 2. **Upload Document**: Choose a PDF, TXT, or Markdown file
 3. **Configure Settings**: Select your preferred model and temperature
 4. **Process Document**: Click the "Process Document" button
@@ -87,9 +88,10 @@ python example_usage.py
 
 ### LLM Models
 
-- `gpt-4-turbo`: Most capable, higher cost
-- `gpt-4`: Very capable, moderate cost
-- `gpt-3.5-turbo`: Fast and economical
+- `mixtral-8x7b-32768`: Mixtral model with 32K context (default)
+- `llama3-8b-8192`: Fast and efficient Llama 3 8B model
+- `llama3-70b-8192`: More capable Llama 3 70B model
+- `gemma-7b-it`: Google's Gemma 7B instruction-tuned model
 
 ### Parameters
 
@@ -147,8 +149,8 @@ from rag_chain import RAGChain, RAGChatbot
 # Create RAG chain
 rag_chain = RAGChain(
     retriever=retriever,
-    openai_api_key="your-key",
-    model_name="gpt-4-turbo",
+    groq_api_key="your-key",
+    model_name="mixtral-8x7b-32768",
     temperature=0.3
 )
 
@@ -190,7 +192,7 @@ Context: {context}"""
 
 rag_chain = RAGChain(
     retriever=retriever,
-    openai_api_key=api_key,
+    groq_api_key=api_key,
     system_prompt=custom_prompt
 )
 ```
@@ -211,7 +213,12 @@ chain = rag_chain.create_conversational_chain(
 ### Loading Existing Vector Stores
 
 ```python
+# For OpenAI embeddings (if used)
 manager = VectorStoreManager(embedding_type="openai", openai_api_key=key)
+manager.load_vector_store("faiss_index")
+
+# For HuggingFace embeddings (free)
+manager = VectorStoreManager(embedding_type="huggingface")
 manager.load_vector_store("faiss_index")
 ```
 
@@ -235,8 +242,8 @@ poc-rag-chatbot-wiki/
 ### Common Issues
 
 **API Key Errors**
-- Ensure your OpenAI API key is valid
-- Check that you have sufficient API credits
+- Ensure your Groq API key is valid and active
+- Get your free Groq API key at https://console.groq.com/keys
 
 **Memory Issues with Large Documents**
 - Reduce chunk size
@@ -244,9 +251,9 @@ poc-rag-chatbot-wiki/
 - Process documents in smaller batches
 
 **Slow Performance**
-- Use `gpt-3.5-turbo` instead of `gpt-4`
+- Use `llama3-8b-8192` for faster responses
 - Reduce the retrieval K value
-- Consider using a more powerful machine for local embeddings
+- Use HuggingFace embeddings for local, free processing
 
 ## Performance Tips
 
@@ -266,14 +273,14 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Built with [LangChain](https://www.langchain.com/)
-- Powered by [OpenAI](https://openai.com/)
+- Powered by [Groq](https://groq.com/) for ultra-fast LLM inference
 - UI created with [Streamlit](https://streamlit.io/)
 - Vector search using [FAISS](https://github.com/facebookresearch/faiss)
 
 ## Resources
 
 - [LangChain Documentation](https://python.langchain.com/)
-- [OpenAI API Reference](https://platform.openai.com/docs/)
+- [Groq Documentation](https://console.groq.com/docs)
 - [Streamlit Documentation](https://docs.streamlit.io/)
 - [RAG Tutorial](https://python.langchain.com/docs/tutorials/rag/)
 
