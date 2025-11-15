@@ -18,9 +18,9 @@ def example_basic_usage():
     print("=" * 60)
 
     # Check for API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        print("⚠️  Please set OPENAI_API_KEY environment variable")
+        print("⚠️  Please set GROQ_API_KEY environment variable")
         return
 
     # Step 1: Process document
@@ -62,8 +62,8 @@ def example_basic_usage():
     retriever = vector_manager.get_retriever(k=3)
     rag_chain = RAGChain(
         retriever=retriever,
-        openai_api_key=api_key,
-        model_name="gpt-3.5-turbo",
+        groq_api_key=api_key,
+        model_name="mixtral-8x7b-32768",
         temperature=0.3
     )
 
@@ -100,9 +100,9 @@ def example_save_and_load():
     print("Example 2: Save and Load Vector Store")
     print("=" * 60)
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        print("⚠️  Please set OPENAI_API_KEY environment variable")
+        print("⚠️  Please set GROQ_API_KEY environment variable")
         return
 
     # Create sample document
@@ -147,8 +147,8 @@ def example_save_and_load():
     retriever = new_manager.get_retriever(k=2)
     rag_chain = RAGChain(
         retriever=retriever,
-        openai_api_key=api_key,
-        model_name="gpt-3.5-turbo"
+        groq_api_key=api_key,
+        model_name="mixtral-8x7b-32768"
     )
 
     chain = rag_chain.create_basic_chain()
@@ -168,15 +168,19 @@ def example_save_and_load():
 
 def example_with_openai_embeddings():
     """
-    Example 3: Using OpenAI embeddings for higher quality.
+    Example 3: Using OpenAI embeddings for higher quality (still requires OpenAI key for embeddings).
     """
     print("\n" + "=" * 60)
     print("Example 3: OpenAI Embeddings (Higher Quality)")
     print("=" * 60)
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        print("⚠️  Please set OPENAI_API_KEY environment variable")
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not groq_api_key:
+        print("⚠️  Please set GROQ_API_KEY environment variable")
+        return
+    if not openai_api_key:
+        print("⚠️  Please set OPENAI_API_KEY environment variable for embeddings")
         return
 
     # Create sample document
@@ -203,7 +207,7 @@ def example_with_openai_embeddings():
     print("\n🔧 Creating vector store with OpenAI embeddings...")
     vector_manager = VectorStoreManager(
         embedding_type="openai",
-        openai_api_key=api_key,
+        openai_api_key=openai_api_key,
         model_name="text-embedding-3-small"
     )
     vector_manager.create_vector_store(chunks)
@@ -212,8 +216,8 @@ def example_with_openai_embeddings():
     retriever = vector_manager.get_retriever(k=2)
     rag_chain = RAGChain(
         retriever=retriever,
-        openai_api_key=api_key,
-        model_name="gpt-4-turbo",
+        groq_api_key=groq_api_key,
+        model_name="mixtral-8x7b-32768",
         temperature=0.2
     )
 
@@ -253,10 +257,10 @@ def main():
     print("3. Using OpenAI embeddings for higher quality")
 
     # Check for API key
-    if not os.getenv("OPENAI_API_KEY"):
-        print("\n⚠️  Warning: OPENAI_API_KEY not found in environment")
-        print("Please set it with: export OPENAI_API_KEY='your-key-here'")
-        print("Or create a .env file with OPENAI_API_KEY=your-key-here")
+    if not os.getenv("GROQ_API_KEY"):
+        print("\n⚠️  Warning: GROQ_API_KEY not found in environment")
+        print("Please set it with: export GROQ_API_KEY='your-key-here'")
+        print("Or create a .env file with GROQ_API_KEY=your-key-here")
         return
 
     # Run examples
