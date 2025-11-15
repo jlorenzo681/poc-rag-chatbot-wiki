@@ -76,7 +76,7 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
 
     Args:
         file_path: Path to document
-        api_key: OpenAI API key
+        api_key: API key for embeddings (if using OpenAI)
         embedding_type: Type of embeddings to use
 
     Returns:
@@ -125,7 +125,7 @@ def initialize_chatbot(api_key: str, model_name: str, temperature: float):
     Initialize the RAG chatbot.
 
     Args:
-        api_key: OpenAI API key
+        api_key: Groq API key
         model_name: LLM model name
         temperature: Temperature for generation
     """
@@ -137,7 +137,7 @@ def initialize_chatbot(api_key: str, model_name: str, temperature: float):
         with st.spinner("🤖 Initializing chatbot..."):
             rag_chain = RAGChain(
                 retriever=retriever,
-                openai_api_key=api_key,
+                groq_api_key=api_key,
                 model_name=model_name,
                 temperature=temperature,
                 max_tokens=500
@@ -198,9 +198,9 @@ def main():
 
         # API Key input
         api_key = st.text_input(
-            "OpenAI API Key",
+            "Groq API Key",
             type="password",
-            help="Enter your OpenAI API key to use GPT models"
+            help="Enter your Groq API key to use Groq models"
         )
 
         st.divider()
@@ -219,8 +219,8 @@ def main():
         st.subheader("LLM Settings")
         model_name = st.selectbox(
             "Model",
-            ["gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"],
-            help="Select the GPT model to use"
+            ["mixtral-8x7b-32768", "llama3-8b-8192", "llama3-70b-8192", "gemma-7b-it"],
+            help="Select the Groq model to use"
         )
 
         temperature = st.slider(
@@ -259,8 +259,8 @@ def main():
                     # Clean up temp file
                     os.unlink(file_path)
 
-        elif uploaded_file and not api_key and embedding_type == "OpenAI":
-            st.warning("⚠️ Please enter your OpenAI API key")
+        elif uploaded_file and not api_key:
+            st.warning("⚠️ Please enter your Groq API key")
 
         st.divider()
 
@@ -275,7 +275,7 @@ def main():
         # Info section
         st.divider()
         st.caption("💡 **How to use:**")
-        st.caption("1. Enter your OpenAI API key")
+        st.caption("1. Enter your Groq API key")
         st.caption("2. Upload a document")
         st.caption("3. Click 'Process Document'")
         st.caption("4. Start asking questions!")
@@ -303,7 +303,7 @@ def main():
             - **Conversational Memory**: Multi-turn conversations
             - **Source Citations**: See where answers come from
             - **Multiple Formats**: PDF, TXT, Markdown support
-            - **Flexible Models**: OpenAI or local embeddings
+            - **Flexible Models**: Groq LLMs with local/cloud embeddings
             """)
 
     else:

@@ -4,7 +4,7 @@ Implements the retrieval-augmented generation chain with conversation memory.
 """
 
 from typing import Optional, Dict, Any
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
@@ -32,8 +32,8 @@ Context: {context}"""
     def __init__(
         self,
         retriever,
-        openai_api_key: str,
-        model_name: str = "gpt-4-turbo",
+        groq_api_key: str,
+        model_name: str = "mixtral-8x7b-32768",
         temperature: float = 0.3,
         max_tokens: int = 500,
         system_prompt: Optional[str] = None
@@ -43,7 +43,7 @@ Context: {context}"""
 
         Args:
             retriever: Vector store retriever
-            openai_api_key: OpenAI API key
+            groq_api_key: Groq API key
             model_name: Name of the LLM model
             temperature: Temperature for response generation (0-1)
             max_tokens: Maximum tokens in response
@@ -53,9 +53,9 @@ Context: {context}"""
         self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
 
         # Initialize LLM
-        self.llm = ChatOpenAI(
-            openai_api_key=openai_api_key,
-            model=model_name,
+        self.llm = ChatGroq(
+            groq_api_key=groq_api_key,
+            model_name=model_name,
             temperature=temperature,
             max_tokens=max_tokens
         )
