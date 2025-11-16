@@ -1,126 +1,172 @@
 # Deployment Scripts
 
-This directory contains shell scripts for easy deployment and management of the RAG Chatbot using Podman.
+This directory contains scripts for managing the RAG Chatbot deployment with Podman.
 
 ## Available Scripts
 
-### deploy.sh
-**Full deployment script with checks and validation**
+### `deploy.sh`
+Deploy the RAG Chatbot with both rag-chatbot and Ollama services using podman-compose.
 
 ```bash
+# Basic deployment
 ./scripts/deploy.sh
+
+# Deploy and pull all Ollama models
+./scripts/deploy.sh --pull-models
+
+# Deploy and pull a specific model
+./scripts/deploy.sh --pull-model llama3.1:8b
 ```
 
-Features:
-- Checks for Podman installation
-- Validates .env file and API keys
-- Creates necessary directories
-- Builds container image
-- Stops existing containers
-- Starts new container with podman-compose
-- Verifies deployment success
-- Shows useful management commands
+**Options:**
+- `--pull-models` - Pull all available Ollama models after deployment
+- `--pull-model MODEL` - Pull a specific Ollama model (e.g., llama3.1:8b)
 
-### build.sh
-**Build the container image**
+### `dev.sh`
+Start development mode with hot reload for code changes while using compose for Ollama.
+
+```bash
+# Basic dev mode
+./scripts/dev.sh
+
+# Dev mode with model pulling
+./scripts/dev.sh --pull-models
+
+# Dev mode with specific model
+./scripts/dev.sh --pull-model llama3.1:8b
+```
+
+**Features:**
+- Hot reload for `app.py`, `src/`, `config/`, and `.streamlit/`
+- Uses podman-compose for Ollama service
+- Development container connected to compose network
+
+**Options:**
+- `--pull-models` - Pull all available Ollama models after starting
+- `--pull-model MODEL` - Pull a specific Ollama model
+
+### `pull-ollama-models.sh`
+Pull Ollama models that are available in the app's model selector.
+
+```bash
+# Pull all models
+./scripts/pull-ollama-models.sh --all
+
+# Pull specific models
+./scripts/pull-ollama-models.sh llama3.1:8b mistral:latest
+
+# Pull single model
+./scripts/pull-ollama-models.sh llama3.1:8b
+```
+
+**Available Models:**
+- `deepseek-r1:8b` (~5.2 GB)
+- `llama3.1:8b` (~4.9 GB)
+- `mistral:latest` (~4.1 GB)
+
+**Note:** The Ollama container must be running before pulling models.
+
+### `build.sh`
+Build the RAG Chatbot container image.
 
 ```bash
 ./scripts/build.sh
 ```
 
-Builds the container image using the Containerfile. Useful when you want to rebuild after code changes.
-
-### stop.sh
-**Stop the running application**
+### `stop.sh`
+Stop all services (rag-chatbot and Ollama).
 
 ```bash
 ./scripts/stop.sh
 ```
 
-Stops and removes the RAG Chatbot containers using podman-compose or manual commands.
-
-### logs.sh
-**View container logs in real-time**
+### `logs.sh`
+View container logs.
 
 ```bash
+# View rag-chatbot logs (default)
 ./scripts/logs.sh
+
+# View Ollama logs
+./scripts/logs.sh ollama
+
+# View all logs (requires podman-compose)
+./scripts/logs.sh all
 ```
 
-Follows the container logs. Press Ctrl+C to exit.
+### `clean.sh`
+Clean up containers, images, volumes, and networks.
 
-## Usage Examples
-
-### First-time deployment
 ```bash
-# Set up environment
-cp .env.example .env
-nano .env  # Add your GROQ_API_KEY
+# Remove containers only
+./scripts/clean.sh
 
-# Deploy
-./scripts/deploy.sh
+# Remove containers and images
+./scripts/clean.sh --images
+
+# Remove containers and volumes (Ollama models)
+./scripts/clean.sh --volumes
+
+# Remove everything
+./scripts/clean.sh --all
 ```
 
-### After code changes
-```bash
-# Rebuild and redeploy
-./scripts/build.sh
-./scripts/stop.sh
-./scripts/deploy.sh
-```
+**Options:**
+- `--images` - Also remove container images
+- `--volumes` - Also remove volumes (this will delete Ollama models!)
+- `--all` - Remove everything (images + volumes)
 
-### Check application logs
-```bash
-./scripts/logs.sh
-```
+## Quick Start
 
-### Stop the application
-```bash
-./scripts/stop.sh
-```
+1. **First time setup:**
+   ```bash
+   # Create .env file
+   cp .env.example .env
+   # Edit .env and add your GROQ_API_KEY
 
-## Prerequisites
+   # Deploy and pull default model
+   ./scripts/deploy.sh --pull-model llama3.1:8b
+   ```
 
-All scripts require:
-- Podman installed
-- .env file with GROQ_API_KEY
-- Executable permissions (already set)
+2. **Development:**
+   ```bash
+   # Start dev mode with hot reload
+   ./scripts/dev.sh --pull-model llama3.1:8b
+   ```
+
+3. **View logs:**
+   ```bash
+   # Watch application logs
+   ./scripts/logs.sh
+
+   # Watch Ollama logs
+   ./scripts/logs.sh ollama
+   ```
+
+4. **Stop services:**
+   ```bash
+   ./scripts/stop.sh
+   ```
+
+## Architecture
+
+All scripts now use `podman-compose.yml` to manage both services:
+- **rag-chatbot**: Streamlit web application
+- **ollama**: Local LLM inference server
+
+Both containers are on the same network (`poc-rag-chatbot-wiki_rag-network`) and can communicate via hostname resolution.
 
 ## Troubleshooting
 
-### Permission Denied
-```bash
-# Make scripts executable
-chmod +x scripts/*.sh
-```
+**Ollama connection refused:**
+- Ensure both containers are running: `podman ps`
+- Check they're on the same network: `podman network inspect poc-rag-chatbot-wiki_rag-network`
+- Restart with compose: `./scripts/stop.sh && ./scripts/deploy.sh`
 
-### podman-compose Not Found
-The deploy script will automatically install it if not found, or you can install manually:
-```bash
-pip install podman-compose
-```
+**Models not found:**
+- Pull models: `./scripts/pull-ollama-models.sh llama3.1:8b`
+- List models: `podman exec ollama ollama list`
 
-### Scripts Don't Find Podman
-Ensure Podman is in your PATH:
-```bash
-which podman
-```
-
-If not found, install Podman from: https://podman.io/getting-started/installation
-
-## Alternative: Using Makefile
-
-You can also use the Makefile in the project root for the same operations:
-
-```bash
-make deploy    # Same as ./scripts/deploy.sh
-make build     # Same as ./scripts/build.sh
-make stop      # Same as ./scripts/stop.sh
-make logs      # Same as ./scripts/logs.sh
-```
-
-## Notes
-
-- Scripts are designed to work from the project root directory
-- They will create necessary directories if they don't exist
-- All scripts provide colored output for better readability
-- Error handling is built-in with helpful messages
+**Network issues:**
+- Always use `./scripts/deploy.sh` or `podman-compose up -d` to start services
+- Never start containers individually with `podman run`

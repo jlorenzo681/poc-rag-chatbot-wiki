@@ -13,6 +13,31 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Parse flags
+PULL_MODELS=false
+MODEL_TO_PULL=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --pull-models)
+            PULL_MODELS=true
+            shift
+            ;;
+        --pull-model)
+            PULL_MODELS=true
+            MODEL_TO_PULL="$2"
+            shift 2
+            ;;
+        *)
+            echo -e "${YELLOW}Unknown option: $1${NC}"
+            echo "Usage: $0 [--pull-models] [--pull-model MODEL_NAME]"
+            echo "  --pull-models           Pull all Ollama models after deployment"
+            echo "  --pull-model MODEL      Pull specific Ollama model (e.g., llama3.1:8b)"
+            exit 1
+            ;;
+    esac
+done
+
 # Check if .env file exists
 if [ ! -f .env ]; then
     echo -e "${RED}Error: .env file not found!${NC}"
@@ -66,38 +91,60 @@ else
     echo -e "\n${GREEN}✓ Image rag-chatbot:latest already exists${NC}"
 fi
 
-# Stop and remove existing container if running
-if podman ps -a | grep -q rag-chatbot; then
-    echo -e "\n${YELLOW}Stopping existing container...${NC}"
-    podman stop rag-chatbot || true
-    podman rm rag-chatbot || true
-fi
+# Stop existing containers via compose
+echo -e "\n${YELLOW}Stopping existing containers...${NC}"
+$COMPOSE_CMD down 2>/dev/null || true
 
-# Start the application
-echo -e "\n${GREEN}Starting RAG Chatbot...${NC}"
+# Start all services using compose
+echo -e "\n${GREEN}Starting RAG Chatbot and Ollama services...${NC}"
 $COMPOSE_CMD up -d
 
 # Wait for application to start
 echo -e "\n${YELLOW}Waiting for application to start...${NC}"
 sleep 5
 
-# Check if container is running
-if podman ps | grep -q rag-chatbot; then
+# Check if containers are running
+if podman ps | grep -q rag-chatbot && podman ps | grep -q ollama; then
     echo -e "\n${GREEN}======================================"
     echo "✓ Deployment successful!"
     echo "======================================${NC}"
     echo ""
-    echo "Application is running at: http://localhost:8501"
+    echo "Services running:"
+    echo "  - RAG Chatbot: http://localhost:8501"
+    echo "  - Ollama:      http://localhost:11434"
     echo ""
     echo "Useful commands:"
-    echo "  View logs:        podman logs -f rag-chatbot"
-    echo "  Stop:             $COMPOSE_CMD down"
-    echo "  Restart:          $COMPOSE_CMD restart"
-    echo "  Container status: podman ps"
+    echo "  View logs:           podman logs -f rag-chatbot"
+    echo "  View ollama logs:    podman logs -f ollama"
+    echo "  Stop all:            $COMPOSE_CMD down"
+    echo "  Restart all:         $COMPOSE_CMD restart"
+    echo "  Container status:    $COMPOSE_CMD ps"
+    echo "  Pull ollama models:  ./scripts/pull-ollama-models.sh [--all|model_name]"
+    echo ""
+
+    # Pull Ollama models if requested
+    if [ "$PULL_MODELS" = true ]; then
+        echo -e "${YELLOW}Waiting for Ollama to be fully ready...${NC}"
+        sleep 5
+
+        if [ -n "$MODEL_TO_PULL" ]; then
+            echo -e "${GREEN}Pulling Ollama model: $MODEL_TO_PULL${NC}"
+            ./scripts/pull-ollama-models.sh "$MODEL_TO_PULL"
+        else
+            echo -e "${GREEN}Pulling all Ollama models...${NC}"
+            ./scripts/pull-ollama-models.sh --all
+        fi
+    else
+        echo -e "${YELLOW}Note: No Ollama models pulled. To pull models, run:${NC}"
+        echo "  ./scripts/pull-ollama-models.sh --all"
+        echo "  or: ./scripts/pull-ollama-models.sh llama3.1:8b"
+    fi
 else
     echo -e "\n${RED}======================================"
     echo "✗ Deployment failed!"
     echo "======================================${NC}"
-    echo "Check logs with: podman logs rag-chatbot"
+    echo "Check logs with:"
+    echo "  podman logs rag-chatbot"
+    echo "  podman logs ollama"
     exit 1
 fi

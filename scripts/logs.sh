@@ -1,9 +1,31 @@
 #!/bin/bash
-# View logs from RAG Chatbot container
+# View logs from RAG Chatbot or Ollama container
 
 set -e
 
-echo "Viewing RAG Chatbot logs (Ctrl+C to exit)..."
+# Parse arguments
+CONTAINER="rag-chatbot"
+if [ "$1" = "ollama" ]; then
+    CONTAINER="ollama"
+elif [ "$1" = "all" ]; then
+    # Show both logs side by side (requires podman-compose or docker-compose)
+    if command -v podman-compose &> /dev/null; then
+        echo "Viewing all service logs (Ctrl+C to exit)..."
+        echo "=============================================="
+        podman-compose logs -f
+        exit 0
+    elif command -v docker-compose &> /dev/null; then
+        echo "Viewing all service logs (Ctrl+C to exit)..."
+        echo "=============================================="
+        docker-compose logs -f
+        exit 0
+    else
+        echo "Error: podman-compose not available. Showing rag-chatbot logs only."
+        echo "Usage: $0 [rag-chatbot|ollama|all]"
+    fi
+fi
+
+echo "Viewing $CONTAINER logs (Ctrl+C to exit)..."
 echo "=============================================="
 
-podman logs -f rag-chatbot
+podman logs -f $CONTAINER
