@@ -3,8 +3,9 @@ RAG Chain Module
 Implements the retrieval-augmented generation chain with conversation memory.
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Literal
 from langchain_groq import ChatGroq
+from langchain_ollama import ChatOllama
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
@@ -32,8 +33,10 @@ Context: {context}"""
     def __init__(
         self,
         retriever,
-        groq_api_key: str,
-        model_name: str = "mixtral-8x7b-32768",
+        llm_provider: Literal["groq", "ollama"] = "groq",
+        groq_api_key: Optional[str] = None,
+        ollama_base_url: str = "http://ollama:11434",
+        model_name: str = "llama-3.1-8b-instant",
         temperature: float = 0.3,
         max_tokens: int = 500,
         system_prompt: Optional[str] = None
@@ -43,7 +46,9 @@ Context: {context}"""
 
         Args:
             retriever: Vector store retriever
-            groq_api_key: Groq API key
+            llm_provider: LLM provider to use ('groq' or 'ollama')
+            groq_api_key: Groq API key (required if llm_provider='groq')
+            ollama_base_url: Ollama server URL (used if llm_provider='ollama')
             model_name: Name of the LLM model
             temperature: Temperature for response generation (0-1)
             max_tokens: Maximum tokens in response
@@ -51,16 +56,36 @@ Context: {context}"""
         """
         self.retriever = retriever
         self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
+        self.llm_provider = llm_provider
 
-        # Initialize LLM
-        self.llm = ChatGroq(
-            groq_api_key=groq_api_key,
-            model_name=model_name,
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
+        # Initialize LLM based on provider
+        if llm_provider == "groq":
+            if not groq_api_key:
+                raise ValueError("groq_api_key is required when using Groq provider")
 
-        print(f"🤖 Initialized LLM: {model_name}")
+            self.llm = ChatGroq(
+                groq_api_key=groq_api_key,
+                model_name=model_name,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout=60.0,
+                max_retries=2
+            )
+            print(f"🤖 Initialized Groq LLM: {model_name}")
+
+        elif llm_provider == "ollama":
+            self.llm = ChatOllama(
+                base_url=ollama_base_url,
+                model=model_name,
+                temperature=temperature,
+                num_predict=max_tokens,
+            )
+            print(f"🤖 Initialized Ollama LLM: {model_name}")
+            print(f"   Base URL: {ollama_base_url}")
+
+        else:
+            raise ValueError(f"Unsupported LLM provider: {llm_provider}")
+
         print(f"   Temperature: {temperature}")
         print(f"   Max tokens: {max_tokens}")
 
@@ -189,9 +214,12 @@ class RAGChatbot:
             return result
 
         except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error in RAG chain: {error_details}")
             return {
                 "question": question,
-                "answer": f"Error processing question: {str(e)}",
+                "answer": f"Error processing question: {str(e)}\n\nDetails: {type(e).__name__}",
                 "error": True
             }
 

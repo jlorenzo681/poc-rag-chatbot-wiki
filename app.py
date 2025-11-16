@@ -5,10 +5,15 @@ A RAG-based chatbot with interactive document upload and chat interface.
 
 import streamlit as st
 import os
+import sys
 import tempfile
-from document_processor import DocumentProcessor
-from vector_store_manager import VectorStoreManager
-from rag_chain import RAGChain, RAGChatbot
+
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from src.chatbot.core.document_processor import DocumentProcessor
+from src.chatbot.core.vector_store_manager import VectorStoreManager
+from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
 
 
 # Page configuration
@@ -83,15 +88,7 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
         True if successful, False otherwise
     """
     try:
-        # Initialize document processor
-        processor = DocumentProcessor(chunk_size=1000, chunk_overlap=200)
-
-        # Process document
-        with st.spinner("📄 Loading and chunking document..."):
-            chunks = processor.process_document(file_path)
-            st.success(f"✓ Created {len(chunks)} chunks")
-
-        # Initialize vector store manager
+        # Initialize vector store manager first (needed for hash calculation)
         with st.spinner(f"🔧 Initializing {embedding_type} embeddings..."):
             if embedding_type == "OpenAI":
                 vector_manager = VectorStoreManager(
@@ -105,10 +102,30 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
                     model_name="all-MiniLM-L6-v2"
                 )
 
-        # Create vector store
+        # Calculate file hash for caching
+        file_hash = vector_manager.get_file_hash(file_path)
+        cache_path = f"data/vector_stores/{file_hash}"
+
+        # Check if cached vector store exists
+        if os.path.exists(cache_path):
+            with st.spinner("📦 Loading cached vector store..."):
+                vector_manager.load_vector_store(cache_path)
+                st.success("✓ Loaded from cache (document already processed)")
+                st.session_state.vector_store_manager = vector_manager
+                return True
+
+        # If not cached, process document
+        processor = DocumentProcessor(chunk_size=1000, chunk_overlap=200)
+
+        # Process document
+        with st.spinner("📄 Loading and chunking document..."):
+            chunks = processor.process_document(file_path)
+            st.success(f"✓ Created {len(chunks)} chunks")
+
+        # Create vector store with caching
         with st.spinner("🔄 Creating vector store..."):
-            vector_manager.create_vector_store(chunks)
-            st.success("✓ Vector store created")
+            vector_manager.create_vector_store(chunks, cache_key=file_hash)
+            st.success("✓ Vector store created and cached")
 
         # Store in session state
         st.session_state.vector_store_manager = vector_manager
@@ -120,12 +137,14 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
         return False
 
 
-def initialize_chatbot(api_key: str, model_name: str, temperature: float):
+def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, model_name: str, temperature: float):
     """
     Initialize the RAG chatbot.
 
     Args:
-        api_key: Groq API key
+        llm_provider: LLM provider ('Groq' or 'Ollama')
+        groq_api_key: Groq API key (if using Groq)
+        ollama_url: Ollama server URL (if using Ollama)
         model_name: LLM model name
         temperature: Temperature for generation
     """
@@ -135,9 +154,13 @@ def initialize_chatbot(api_key: str, model_name: str, temperature: float):
 
         # Create RAG chain
         with st.spinner("🤖 Initializing chatbot..."):
+            provider_lower = llm_provider.lower()
+
             rag_chain = RAGChain(
                 retriever=retriever,
-                groq_api_key=api_key,
+                llm_provider=provider_lower,
+                groq_api_key=groq_api_key if provider_lower == "groq" else None,
+                ollama_base_url=ollama_url,
                 model_name=model_name,
                 temperature=temperature,
                 max_tokens=500
@@ -196,12 +219,50 @@ def main():
     with st.sidebar:
         st.header("⚙️ Configuration")
 
-        # API Key input
-        api_key = st.text_input(
-            "Groq API Key",
-            type="password",
-            help="Enter your Groq API key to use Groq models"
+        # LLM Provider Selection
+        st.subheader("LLM Provider")
+        llm_provider = st.radio(
+            "Choose Provider",
+            ["Groq", "Ollama"],
+            help="Groq: Cloud API (fast), Ollama: Local (containerized)"
         )
+
+        st.divider()
+
+        # Provider-specific configuration
+        if llm_provider == "Groq":
+            env_api_key = os.getenv("GROQ_API_KEY", "")
+            if env_api_key:
+                api_key = env_api_key
+                st.success("✓ Using GROQ_API_KEY from environment")
+            else:
+                api_key = st.text_input(
+                    "Groq API Key",
+                    type="password",
+                    help="Enter your Groq API key"
+                )
+
+            model_name = st.selectbox(
+                "Model",
+                ["llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+                help="Select the Groq model to use"
+            )
+            ollama_url = ""
+        else:  # Ollama
+            ollama_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+            st.text_input(
+                "Ollama Server URL",
+                value=ollama_url,
+                disabled=True,
+                help="Ollama server URL (from environment)"
+            )
+
+            model_name = st.selectbox(
+                "Model",
+                ["llama3.1:8b", "llama3.1:70b", "mistral:latest", "mixtral:latest"],
+                help="Select the Ollama model (pull it first if needed)"
+            )
+            api_key = ""
 
         st.divider()
 
@@ -209,19 +270,15 @@ def main():
         st.subheader("Embeddings")
         embedding_type = st.radio(
             "Embedding Model",
-            ["OpenAI", "HuggingFace (Free)"],
-            help="OpenAI requires API key, HuggingFace runs locally"
+            ["HuggingFace (Free)", "OpenAI"],
+            index=0,
+            help="HuggingFace runs locally, OpenAI requires API key"
         )
 
         st.divider()
 
         # LLM settings
         st.subheader("LLM Settings")
-        model_name = st.selectbox(
-            "Model",
-            ["mixtral-8x7b-32768", "llama3-8b-8192", "llama3-70b-8192", "gemma-7b-it"],
-            help="Select the Groq model to use"
-        )
 
         temperature = st.slider(
             "Temperature",
@@ -243,23 +300,29 @@ def main():
         )
 
         # Process button
-        if uploaded_file and api_key:
-            if st.button("🚀 Process Document", use_container_width=True):
+        can_process = uploaded_file and ((llm_provider == "Groq" and api_key) or (llm_provider == "Ollama"))
+
+        if uploaded_file and can_process:
+            if st.button(
+                "🚀 Process Document",
+                use_container_width=True,
+                disabled=st.session_state.document_processed
+            ):
                 # Save uploaded file
                 file_path = save_uploaded_file(uploaded_file)
 
                 # Process document
-                success = process_document(file_path, api_key, embedding_type)
+                success = process_document(file_path, api_key if llm_provider == "Groq" else "", embedding_type)
 
                 if success:
                     # Initialize chatbot
-                    initialize_chatbot(api_key, model_name, temperature)
+                    initialize_chatbot(llm_provider, api_key, ollama_url, model_name, temperature)
                     st.session_state.document_processed = True
 
                     # Clean up temp file
                     os.unlink(file_path)
 
-        elif uploaded_file and not api_key:
+        elif uploaded_file and llm_provider == "Groq" and not api_key:
             st.warning("⚠️ Please enter your Groq API key")
 
         st.divider()

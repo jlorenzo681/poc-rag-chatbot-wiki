@@ -6,9 +6,16 @@ Handles embeddings generation and vector store operations.
 from typing import List, Optional, Literal
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import os
+import hashlib
+
+# Optional: OpenAI embeddings (requires langchain-openai package)
+try:
+    from langchain_openai import OpenAIEmbeddings
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
 
 
 class VectorStoreManager:
@@ -18,7 +25,7 @@ class VectorStoreManager:
 
     def __init__(
         self,
-        embedding_type: Literal["openai", "huggingface"] = "openai",
+        embedding_type: Literal["openai", "huggingface"] = "huggingface",
         openai_api_key: Optional[str] = None,
         model_name: Optional[str] = None
     ):
@@ -56,6 +63,11 @@ class VectorStoreManager:
             Embeddings instance
         """
         if embedding_type == "openai":
+            if not OPENAI_AVAILABLE:
+                raise ImportError(
+                    "OpenAI embeddings requested but langchain-openai is not installed. "
+                    "Install it with: pip install langchain-openai"
+                )
             if not api_key:
                 raise ValueError("OpenAI API key is required for OpenAI embeddings")
 
@@ -78,22 +90,54 @@ class VectorStoreManager:
         else:
             raise ValueError(f"Unsupported embedding type: {embedding_type}")
 
-    def create_vector_store(self, documents: List[Document]) -> FAISS:
+    def get_file_hash(self, file_path: str) -> str:
         """
-        Create a new vector store from documents.
+        Calculate SHA256 hash of a file.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            Hex string of the file hash
+        """
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+
+    def create_vector_store(self, documents: List[Document], cache_key: Optional[str] = None) -> FAISS:
+        """
+        Create a new vector store from documents, with optional caching.
 
         Args:
             documents: List of Document objects to embed
+            cache_key: Optional cache key (file hash) to save/load from cache
 
         Returns:
             FAISS vector store
         """
+        # If cache_key provided, check if cached version exists
+        if cache_key:
+            cache_path = f"data/vector_stores/{cache_key}"
+            if os.path.exists(cache_path):
+                print(f"\n📦 Loading cached vector store for hash: {cache_key[:12]}...")
+                return self.load_vector_store(cache_path)
+
         print(f"\n🔄 Creating vector store from {len(documents)} documents...")
         self.vector_store = FAISS.from_documents(
             documents=documents,
             embedding=self.embeddings
         )
         print("✓ Vector store created successfully")
+
+        # Save to cache if cache_key provided
+        if cache_key:
+            cache_path = f"data/vector_stores/{cache_key}"
+            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+            self.save_vector_store(cache_path)
+            print(f"✓ Vector store cached with key: {cache_key[:12]}...")
+
         return self.vector_store
 
     def save_vector_store(self, path: str = "faiss_index"):
