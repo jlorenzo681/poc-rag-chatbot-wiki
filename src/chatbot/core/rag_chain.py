@@ -79,9 +79,11 @@ Context: {context}"""
                 model=model_name,
                 temperature=temperature,
                 num_predict=max_tokens,
+                timeout=300.0,  # 5 minutes for CPU-only inference
             )
             print(f"🤖 Initialized Ollama LLM: {model_name}")
             print(f"   Base URL: {ollama_base_url}")
+            print(f"   ⚠ Using CPU inference - responses may be slow")
 
         else:
             raise ValueError(f"Unsupported LLM provider: {llm_provider}")

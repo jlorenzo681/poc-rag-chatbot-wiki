@@ -1,6 +1,6 @@
 # Makefile for RAG Chatbot Project
 
-.PHONY: help build run stop logs clean deploy test install dev
+.PHONY: help build run stop logs clean clean-all clean-images clean-volumes deploy test install dev pull-models
 
 # Default target
 help:
@@ -16,7 +16,11 @@ help:
 	@echo "  make restart      - Restart Podman containers"
 	@echo "  make logs         - View container logs"
 	@echo "  make shell        - Open shell in running container"
-	@echo "  make clean        - Clean up containers and images"
+	@echo "  make clean        - Clean up containers only"
+	@echo "  make clean-images - Clean up containers and images"
+	@echo "  make clean-volumes- Clean up containers and volumes (deletes Ollama models!)"
+	@echo "  make clean-all    - Clean up everything (containers, images, volumes)"
+	@echo "  make pull-models  - Pull all Ollama models"
 	@echo "  make test         - Run tests"
 	@echo "  make lint         - Run linters"
 	@echo ""
@@ -61,9 +65,25 @@ shell:
 	@echo "Opening shell in container..."
 	podman exec -it rag-chatbot /bin/bash
 
-# Clean up
+# Clean up - containers only
 clean:
-	@./scripts/clean.sh $(filter-out $@,$(MAKECMDGOALS))
+	@./scripts/clean.sh
+
+# Clean up - containers and images
+clean-images:
+	@./scripts/clean.sh --images
+
+# Clean up - containers and volumes
+clean-volumes:
+	@./scripts/clean.sh --volumes
+
+# Clean up - everything
+clean-all:
+	@./scripts/clean.sh --all
+
+# Pull Ollama models
+pull-models:
+	@./scripts/pull-ollama-models.sh --all
 
 # Run tests
 test:

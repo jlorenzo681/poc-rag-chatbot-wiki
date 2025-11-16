@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 
 # Parse flags
 REMOVE_IMAGES=false
-REMOVE_VOLUMES=false
+REMOVE_VOLUMES=falsemake
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -51,24 +51,27 @@ if ! command -v podman &> /dev/null; then
     exit 1
 fi
 
-# Stop and remove rag-chatbot container
-echo -e "\n${YELLOW}Stopping and removing rag-chatbot container...${NC}"
-if podman ps -a | grep -q rag-chatbot; then
-    podman stop rag-chatbot 2>/dev/null || true
-    podman rm rag-chatbot 2>/dev/null || true
-    echo -e "${GREEN}✓ Container removed${NC}"
+# Stop and remove containers using compose if available
+echo -e "\n${YELLOW}Stopping and removing containers...${NC}"
+if command -v podman-compose &> /dev/null; then
+    podman-compose down 2>/dev/null || true
+    echo -e "${GREEN}✓ Containers stopped via podman-compose${NC}"
+elif command -v docker-compose &> /dev/null; then
+    docker-compose down 2>/dev/null || true
+    echo -e "${GREEN}✓ Containers stopped via docker-compose${NC}"
 else
-    echo -e "${YELLOW}⚠ Container not found${NC}"
-fi
+    # Manual removal
+    if podman ps -a | grep -q rag-chatbot; then
+        podman stop rag-chatbot 2>/dev/null || true
+        podman rm rag-chatbot 2>/dev/null || true
+        echo -e "${GREEN}✓ rag-chatbot container removed${NC}"
+    fi
 
-# Stop and remove ollama container (if using podman-compose)
-echo -e "\n${YELLOW}Stopping and removing ollama container...${NC}"
-if podman ps -a | grep -q ollama; then
-    podman stop ollama 2>/dev/null || true
-    podman rm ollama 2>/dev/null || true
-    echo -e "${GREEN}✓ Ollama container removed${NC}"
-else
-    echo -e "${YELLOW}⚠ Ollama container not found${NC}"
+    if podman ps -a | grep -q ollama; then
+        podman stop ollama 2>/dev/null || true
+        podman rm ollama 2>/dev/null || true
+        echo -e "${GREEN}✓ ollama container removed${NC}"
+    fi
 fi
 
 # Remove images if flag set
@@ -82,8 +85,8 @@ if [ "$REMOVE_IMAGES" = true ]; then
         echo -e "${YELLOW}⚠ rag-chatbot image not found${NC}"
     fi
 
-    if podman image exists ollama/ollama:latest; then
-        podman rmi ollama/ollama:latest 2>/dev/null || true
+    if podman image exists docker.io/ollama/ollama:latest; then
+        podman rmi docker.io/ollama/ollama:latest 2>/dev/null || true
         echo -e "${GREEN}✓ Ollama image removed${NC}"
     else
         echo -e "${YELLOW}⚠ Ollama image not found${NC}"
@@ -106,20 +109,20 @@ else
     echo -e "\n${YELLOW}⚠ Volumes kept (use --volumes flag to remove Ollama models)${NC}"
 fi
 
-# Remove network if it exists and has no containers
-echo -e "\n${YELLOW}Cleaning up network...${NC}"
-if podman network exists rag-network; then
-    # Check if network has any containers
-    NETWORK_CONTAINERS=$(podman network inspect rag-network --format '{{len .Containers}}' 2>/dev/null || echo "0")
-    if [ "$NETWORK_CONTAINERS" = "0" ]; then
-        podman network rm rag-network 2>/dev/null || true
-        echo -e "${GREEN}✓ Network removed${NC}"
-    else
-        echo -e "${YELLOW}⚠ Network has active containers, keeping it${NC}"
+# Remove networks if they exist and have no containers
+echo -e "\n${YELLOW}Cleaning up networks...${NC}"
+for network in rag-network poc-rag-chatbot-wiki_rag-network; do
+    if podman network exists $network 2>/dev/null; then
+        # Check if network has any containers
+        NETWORK_CONTAINERS=$(podman network inspect $network --format '{{len .Containers}}' 2>/dev/null || echo "0")
+        if [ "$NETWORK_CONTAINERS" = "0" ]; then
+            podman network rm $network 2>/dev/null || true
+            echo -e "${GREEN}✓ Network $network removed${NC}"
+        else
+            echo -e "${YELLOW}⚠ Network $network has active containers, keeping it${NC}"
+        fi
     fi
-else
-    echo -e "${YELLOW}⚠ Network not found${NC}"
-fi
+done
 
 # Summary
 echo -e "\n${GREEN}======================================"

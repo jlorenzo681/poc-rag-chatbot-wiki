@@ -6,7 +6,8 @@ A RAG-based chatbot with interactive document upload and chat interface.
 import streamlit as st
 import os
 import sys
-import tempfile
+from pathlib import Path
+import re
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -14,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.chatbot.core.document_processor import DocumentProcessor
 from src.chatbot.core.vector_store_manager import VectorStoreManager
 from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
+from config.settings import DOCUMENTS_DIR
 
 
 # Page configuration
@@ -62,7 +64,8 @@ def initialize_session_state():
 
 def save_uploaded_file(uploaded_file) -> str:
     """
-    Save uploaded file to temporary location.
+    Save uploaded file to documents directory with sanitized filename.
+    Files with the same name will be overwritten, allowing cache reuse.
 
     Args:
         uploaded_file: Streamlit uploaded file object
@@ -70,9 +73,35 @@ def save_uploaded_file(uploaded_file) -> str:
     Returns:
         Path to saved file
     """
-    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{uploaded_file.name.split('.')[-1]}") as tmp_file:
-        tmp_file.write(uploaded_file.getvalue())
-        return tmp_file.name
+    # Ensure documents directory exists
+    DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Sanitize filename: remove special characters, keep alphanumeric, dots, hyphens, underscores
+    original_name = uploaded_file.name
+    name_parts = original_name.rsplit('.', 1)
+    base_name = name_parts[0]
+    extension = name_parts[1] if len(name_parts) > 1 else ''
+
+    # Remove or replace invalid characters
+    sanitized_base = re.sub(r'[^\w\s\-\.]', '_', base_name)
+    # Replace multiple spaces/underscores with single underscore
+    sanitized_base = re.sub(r'[\s_]+', '_', sanitized_base)
+    # Remove leading/trailing underscores
+    sanitized_base = sanitized_base.strip('_')
+
+    # Construct final filename without timestamp
+    if sanitized_base:
+        final_filename = f"{sanitized_base}.{extension}" if extension else sanitized_base
+    else:
+        final_filename = f"document.{extension}" if extension else "document"
+
+    file_path = DOCUMENTS_DIR / final_filename
+
+    # Overwrite if file already exists
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getvalue())
+
+    return str(file_path)
 
 
 def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
@@ -259,7 +288,7 @@ def main():
 
             model_name = st.selectbox(
                 "Model",
-                ["llama3.1:8b", "llama3.1:70b", "mistral:latest", "mixtral:latest"],
+                ["llama3.1:8b", "mistral:latest", "deepseek-r1:8b"],
                 help="Select the Ollama model (pull it first if needed)"
             )
             api_key = ""
@@ -319,8 +348,7 @@ def main():
                     initialize_chatbot(llm_provider, api_key, ollama_url, model_name, temperature)
                     st.session_state.document_processed = True
 
-                    # Clean up temp file
-                    os.unlink(file_path)
+                    # Note: File is kept in data/documents/ directory for reference
 
         elif uploaded_file and llm_provider == "Groq" and not api_key:
             st.warning("⚠️ Please enter your Groq API key")
