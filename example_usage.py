@@ -4,9 +4,14 @@ Demonstrates how to use the modules programmatically.
 """
 
 import os
-from document_processor import DocumentProcessor
-from vector_store_manager import VectorStoreManager
-from rag_chain import RAGChain, RAGChatbot
+import sys
+
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from src.chatbot.core.document_processor import DocumentProcessor
+from src.chatbot.core.vector_store_manager import VectorStoreManager
+from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
 
 
 def example_basic_usage():
@@ -63,7 +68,7 @@ def example_basic_usage():
     rag_chain = RAGChain(
         retriever=retriever,
         groq_api_key=api_key,
-        model_name="mixtral-8x7b-32768",
+        model_name="llama-3.1-8b-instant",
         temperature=0.3
     )
 
@@ -148,7 +153,7 @@ def example_save_and_load():
     rag_chain = RAGChain(
         retriever=retriever,
         groq_api_key=api_key,
-        model_name="mixtral-8x7b-32768"
+        model_name="llama-3.1-8b-instant"
     )
 
     chain = rag_chain.create_basic_chain()
@@ -217,7 +222,7 @@ def example_with_openai_embeddings():
     rag_chain = RAGChain(
         retriever=retriever,
         groq_api_key=groq_api_key,
-        model_name="mixtral-8x7b-32768",
+        model_name="llama-3.1-8b-instant",
         temperature=0.2
     )
 

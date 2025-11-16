@@ -27,8 +27,11 @@ The system consists of four main components:
 - Python 3.8 or higher
 - Groq API key (get it from https://console.groq.com/keys)
 - Optional: OpenAI API key (only for OpenAI embeddings)
+- Optional: Podman (for containerized deployment)
 
-### Setup
+### Quick Start
+
+#### Local Development
 
 1. Clone the repository:
 ```bash
@@ -41,7 +44,7 @@ cd poc-rag-chatbot-wiki
 pip install -r requirements.txt
 ```
 
-3. Create a `.env` file (optional):
+3. Create a `.env` file:
 ```bash
 cp .env.example .env
 ```
@@ -50,6 +53,21 @@ Edit `.env` and add your Groq API key:
 ```
 GROQ_API_KEY=your-api-key-here
 ```
+
+#### Containerized Deployment (Podman)
+
+For production deployment with Podman:
+
+```bash
+# 1. Set up environment
+cp .env.example .env
+nano .env  # Add your GROQ_API_KEY
+
+# 2. Deploy with one command
+make deploy
+```
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md) for the complete deployment guide.**
 
 ## Usage
 
@@ -86,12 +104,6 @@ python example_usage.py
 - **OpenAI** (`text-embedding-3-small`): High quality, requires API key
 - **HuggingFace** (`all-MiniLM-L6-v2`): Free, runs locally, lower quality
 
-### LLM Models
-
-- `mixtral-8x7b-32768`: Mixtral model with 32K context (default)
-- `llama3-8b-8192`: Fast and efficient Llama 3 8B model
-- `llama3-70b-8192`: More capable Llama 3 70B model
-- `gemma-7b-it`: Google's Gemma 7B instruction-tuned model
 
 ### Parameters
 
@@ -150,7 +162,7 @@ from rag_chain import RAGChain, RAGChatbot
 rag_chain = RAGChain(
     retriever=retriever,
     groq_api_key="your-key",
-    model_name="mixtral-8x7b-32768",
+    model_name="llama-3.1-8b-instant",
     temperature=0.3
 )
 
@@ -226,15 +238,30 @@ manager.load_vector_store("faiss_index")
 
 ```
 poc-rag-chatbot-wiki/
-├── app.py                      # Streamlit web interface
-├── document_processor.py       # Document loading and chunking
-├── vector_store_manager.py     # Embeddings and vector storage
-├── rag_chain.py               # RAG chain implementation
-├── example_usage.py           # CLI usage examples
-├── requirements.txt           # Python dependencies
-├── .env.example              # Environment variables template
-├── .gitignore                # Git ignore rules
-└── README.md                 # This file
+├── src/                       # Source code package
+│   └── chatbot/              # Main chatbot package
+│       ├── core/             # Core functionality modules
+│       │   ├── __init__.py
+│       │   ├── document_processor.py     # Document loading and chunking
+│       │   ├── vector_store_manager.py   # Embeddings and vector storage
+│       │   └── rag_chain.py             # RAG chain implementation
+│       ├── utils/            # Utility functions
+│       │   └── __init__.py
+│       └── __init__.py
+├── config/                   # Configuration files
+│   ├── __init__.py
+│   └── settings.py          # Application settings and constants
+├── data/                    # Data directory (gitignored)
+│   ├── documents/          # Uploaded documents storage
+│   └── vector_stores/      # Saved vector store indices
+├── logs/                   # Application logs (gitignored)
+├── tests/                  # Test files (future)
+├── app.py                 # Streamlit web interface
+├── example_usage.py       # CLI usage examples
+├── requirements.txt       # Python dependencies
+├── .env.example          # Environment variables template
+├── .gitignore           # Git ignore rules
+└── README.md            # This file
 ```
 
 ## Troubleshooting

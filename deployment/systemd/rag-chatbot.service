@@ -1,0 +1,28 @@
+[Unit]
+Description=RAG Chatbot Podman Container
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+TimeoutStopSec=70
+ExecStartPre=/usr/bin/podman rm -f rag-chatbot
+ExecStart=/usr/bin/podman run \
+    --name rag-chatbot \
+    --rm \
+    -p 8501:8501 \
+    --env-file /path/to/your/project/.env \
+    -v /path/to/your/project/data/documents:/app/data/documents:z \
+    -v /path/to/your/project/data/vector_stores:/app/data/vector_stores:z \
+    -v /path/to/your/project/logs:/app/logs:z \
+    --security-opt no-new-privileges:true \
+    --cap-drop ALL \
+    --cap-add NET_BIND_SERVICE \
+    rag-chatbot:latest
+ExecStop=/usr/bin/podman stop -t 10 rag-chatbot
+ExecStopPost=/usr/bin/podman rm -f rag-chatbot
+
+[Install]
+WantedBy=multi-user.target default.target
