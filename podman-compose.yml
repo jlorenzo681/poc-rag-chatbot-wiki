@@ -4,12 +4,14 @@ services:
   rag-chatbot:
     image: rag-chatbot:latest
     container_name: rag-chatbot
+    user: "${UID:-1000}:${GID:-1000}"
     ports:
       - "8501:8501"
     environment:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - OLLAMA_HOST=http://ollama:11434
     volumes:
       # Persistent data volumes
       - ./data/documents:/app/data/documents:z
