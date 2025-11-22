@@ -65,18 +65,25 @@ fi
 
 echo -e "${GREEN}✓ Podman is installed${NC}"
 
-# Check if podman-compose is available
-if command -v podman-compose &> /dev/null; then
-    COMPOSE_CMD="podman-compose"
+# Compose file location
+COMPOSE_FILE="podman-compose.yml"
+
+# Check if podman compose is available (Podman Desktop includes this)
+if podman compose version &> /dev/null; then
+    COMPOSE_CMD="podman compose -f $COMPOSE_FILE"
+    echo -e "${GREEN}✓ Using podman compose${NC}"
+elif command -v podman-compose &> /dev/null; then
+    COMPOSE_CMD="podman-compose -f $COMPOSE_FILE"
     echo -e "${GREEN}✓ Using podman-compose${NC}"
 elif command -v docker-compose &> /dev/null; then
-    COMPOSE_CMD="docker-compose"
+    COMPOSE_CMD="docker-compose -f $COMPOSE_FILE"
     echo -e "${YELLOW}⚠ Using docker-compose with Podman${NC}"
 else
-    echo -e "${YELLOW}⚠ Neither podman-compose nor docker-compose found${NC}"
-    echo "Installing podman-compose..."
-    pip install podman-compose
-    COMPOSE_CMD="podman-compose"
+    echo -e "${RED}Error: No compose tool found${NC}"
+    echo "Please install Podman Desktop or podman-compose:"
+    echo "  brew install podman-compose"
+    echo "  or: pip install podman-compose"
+    exit 1
 fi
 
 # Create necessary directories

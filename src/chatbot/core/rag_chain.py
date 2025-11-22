@@ -6,6 +6,7 @@ Implements the retrieval-augmented generation chain with conversation memory.
 from typing import Optional, Dict, Any, Literal
 from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
@@ -33,9 +34,10 @@ Context: {context}"""
     def __init__(
         self,
         retriever,
-        llm_provider: Literal["groq", "ollama"] = "groq",
+        llm_provider: Literal["groq", "ollama", "lmstudio"] = "groq",
         groq_api_key: Optional[str] = None,
         ollama_base_url: str = "http://ollama:11434",
+        lmstudio_base_url: str = "http://localhost:1234/v1",
         model_name: str = "llama-3.1-8b-instant",
         temperature: float = 0.3,
         max_tokens: int = 500,
@@ -46,9 +48,10 @@ Context: {context}"""
 
         Args:
             retriever: Vector store retriever
-            llm_provider: LLM provider to use ('groq' or 'ollama')
+            llm_provider: LLM provider to use ('groq', 'ollama', or 'lmstudio')
             groq_api_key: Groq API key (required if llm_provider='groq')
             ollama_base_url: Ollama server URL (used if llm_provider='ollama')
+            lmstudio_base_url: LM Studio server URL (used if llm_provider='lmstudio')
             model_name: Name of the LLM model
             temperature: Temperature for response generation (0-1)
             max_tokens: Maximum tokens in response
@@ -84,6 +87,19 @@ Context: {context}"""
             print(f"🤖 Initialized Ollama LLM: {model_name}")
             print(f"   Base URL: {ollama_base_url}")
             print(f"   ⚠ Using CPU inference - responses may be slow")
+
+        elif llm_provider == "lmstudio":
+            self.llm = ChatOpenAI(
+                base_url=lmstudio_base_url,
+                api_key="lm-studio",  # LM Studio doesn't require a real API key
+                model=model_name,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout=300.0,
+            )
+            print(f"🤖 Initialized LM Studio LLM: {model_name}")
+            print(f"   Base URL: {lmstudio_base_url}")
+            print(f"   Using Metal GPU acceleration")
 
         else:
             raise ValueError(f"Unsupported LLM provider: {llm_provider}")

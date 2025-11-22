@@ -17,7 +17,6 @@ echo "======================================${NC}"
 # Models available in the app (from app.py line 291)
 MODELS=(
     "llama3.1:8b"
-    "mistral:latest"
     "deepseek-r1:8b"
 )
 

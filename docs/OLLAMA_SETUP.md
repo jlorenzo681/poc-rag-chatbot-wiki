@@ -29,8 +29,6 @@ Before using Ollama, you need to pull at least one model:
 podman exec ollama ollama pull llama3.1:8b
 
 # Or pull other models
-podman exec ollama ollama pull mistral:latest
-podman exec ollama ollama pull mixtral:latest
 podman exec ollama ollama pull llama3.1:70b  # Large model, ~40GB
 ```
 

@@ -166,14 +166,15 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
         return False
 
 
-def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, model_name: str, temperature: float):
+def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, lmstudio_url: str, model_name: str, temperature: float):
     """
     Initialize the RAG chatbot.
 
     Args:
-        llm_provider: LLM provider ('Groq' or 'Ollama')
+        llm_provider: LLM provider ('Groq', 'Ollama', or 'LM Studio')
         groq_api_key: Groq API key (if using Groq)
         ollama_url: Ollama server URL (if using Ollama)
+        lmstudio_url: LM Studio server URL (if using LM Studio)
         model_name: LLM model name
         temperature: Temperature for generation
     """
@@ -183,13 +184,14 @@ def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, mo
 
         # Create RAG chain
         with st.spinner("🤖 Initializing chatbot..."):
-            provider_lower = llm_provider.lower()
+            provider_lower = llm_provider.lower().replace(" ", "")  # "LM Studio" -> "lmstudio"
 
             rag_chain = RAGChain(
                 retriever=retriever,
                 llm_provider=provider_lower,
                 groq_api_key=groq_api_key if provider_lower == "groq" else None,
                 ollama_base_url=ollama_url,
+                lmstudio_base_url=lmstudio_url,
                 model_name=model_name,
                 temperature=temperature,
                 max_tokens=500
@@ -252,13 +254,16 @@ def main():
         st.subheader("LLM Provider")
         llm_provider = st.radio(
             "Choose Provider",
-            ["Groq", "Ollama"],
-            help="Groq: Cloud API (fast), Ollama: Local (containerized)"
+            ["Groq", "Ollama", "LM Studio"],
+            help="Groq: Cloud API (fast), Ollama: Local (containerized), LM Studio: Local (GPU accelerated)"
         )
 
         st.divider()
 
         # Provider-specific configuration
+        ollama_url = ""
+        lmstudio_url = ""
+
         if llm_provider == "Groq":
             env_api_key = os.getenv("GROQ_API_KEY", "")
             if env_api_key:
@@ -276,8 +281,7 @@ def main():
                 ["llama-3.1-8b-instant", "mixtral-8x7b-32768"],
                 help="Select the Groq model to use"
             )
-            ollama_url = ""
-        else:  # Ollama
+        elif llm_provider == "Ollama":
             ollama_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
             st.text_input(
                 "Ollama Server URL",
@@ -288,8 +292,23 @@ def main():
 
             model_name = st.selectbox(
                 "Model",
-                ["llama3.1:8b", "mistral:latest", "deepseek-r1:8b"],
+                ["deepseek-r1:8b"],
                 help="Select the Ollama model (pull it first if needed)"
+            )
+            api_key = ""
+        else:  # LM Studio
+            st.warning("⚠️ Make sure LM Studio is running in server mode (Local Server tab)")
+            lmstudio_url = os.getenv("LMSTUDIO_BASE_URL", "http://host.docker.internal:1234/v1")
+            lmstudio_url = st.text_input(
+                "LM Studio Server URL",
+                value=lmstudio_url,
+                help="LM Studio server URL (default: http://host.docker.internal:1234/v1)"
+            )
+
+            model_name = st.text_input(
+                "Model Name",
+                value="local-model",
+                help="Enter the model name loaded in LM Studio (or use 'local-model')"
             )
             api_key = ""
 
@@ -329,7 +348,11 @@ def main():
         )
 
         # Process button
-        can_process = uploaded_file and ((llm_provider == "Groq" and api_key) or (llm_provider == "Ollama"))
+        can_process = uploaded_file and (
+            (llm_provider == "Groq" and api_key) or
+            llm_provider == "Ollama" or
+            (llm_provider == "LM Studio" and lmstudio_url)
+        )
 
         if uploaded_file and can_process:
             if st.button(
@@ -345,13 +368,15 @@ def main():
 
                 if success:
                     # Initialize chatbot
-                    initialize_chatbot(llm_provider, api_key, ollama_url, model_name, temperature)
+                    initialize_chatbot(llm_provider, api_key, ollama_url, lmstudio_url, model_name, temperature)
                     st.session_state.document_processed = True
 
                     # Note: File is kept in data/documents/ directory for reference
 
         elif uploaded_file and llm_provider == "Groq" and not api_key:
             st.warning("⚠️ Please enter your Groq API key")
+        elif uploaded_file and llm_provider == "LM Studio" and not lmstudio_url:
+            st.warning("⚠️ Please enter the LM Studio server URL")
 
         st.divider()
 

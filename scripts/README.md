@@ -62,7 +62,6 @@ Pull Ollama models that are available in the app's model selector.
 **Available Models:**
 - `deepseek-r1:8b` (~5.2 GB)
 - `llama3.1:8b` (~4.9 GB)
-- `mistral:latest` (~4.1 GB)
 
 **Note:** The Ollama container must be running before pulling models.
 
