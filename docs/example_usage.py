@@ -14,7 +14,7 @@ from src.chatbot.core.vector_store_manager import VectorStoreManager
 from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
 
 
-def example_basic_usage():
+def example_basic_usage() -> None:
     """
     Example 1: Basic document Q&A without saving vector store.
     """
@@ -97,7 +97,7 @@ def example_basic_usage():
     print("\n✓ Example completed!")
 
 
-def example_save_and_load():
+def example_save_and_load() -> None:
     """
     Example 2: Save vector store and load it later.
     """
@@ -171,7 +171,7 @@ def example_save_and_load():
     print("\n✓ Example completed!")
 
 
-def example_with_openai_embeddings():
+def example_with_openai_embeddings() -> None:
     """
     Example 3: Using OpenAI embeddings for higher quality (still requires OpenAI key for embeddings).
     """
@@ -248,7 +248,7 @@ def example_with_openai_embeddings():
     print("\n✓ Example completed!")
 
 
-def main():
+def main() -> None:
     """
     Run all examples.
     """

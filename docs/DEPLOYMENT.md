@@ -22,7 +22,7 @@ This guide covers deploying the RAG Chatbot using Podman containerization.
 ### Required
 
 - **Podman** 4.0 or higher ([Installation Guide](https://podman.io/getting-started/installation))
-- **Python** 3.8+ (for local development)
+- **Python** 3.10+ (for local development)
 - **Groq API Key** ([Get one here](https://console.groq.com/keys))
 
 ### Optional
