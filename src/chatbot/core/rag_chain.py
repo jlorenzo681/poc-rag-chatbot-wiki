@@ -3,13 +3,14 @@ RAG Chain Module
 Implements the retrieval-augmented generation chain with conversation memory.
 """
 
-from typing import Optional, Dict, Any, Literal
+from typing import Optional, Dict, Any, Literal, List
+from langchain.schema import Document
 from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
@@ -86,7 +87,7 @@ Context: {context}"""
             )
             print(f"🤖 Initialized Ollama LLM: {model_name}")
             print(f"   Base URL: {ollama_base_url}")
-            print(f"   ⚠ Using CPU inference - responses may be slow")
+            print("   ⚠ Using CPU inference - responses may be slow")
 
         elif llm_provider == "lmstudio":
             self.llm = ChatOpenAI(
@@ -99,7 +100,7 @@ Context: {context}"""
             )
             print(f"🤖 Initialized LM Studio LLM: {model_name}")
             print(f"   Base URL: {lmstudio_base_url}")
-            print(f"   Using Metal GPU acceleration")
+            print("   Using Metal GPU acceleration")
 
         else:
             raise ValueError(f"Unsupported LLM provider: {llm_provider}")
@@ -107,7 +108,7 @@ Context: {context}"""
         print(f"   Temperature: {temperature}")
         print(f"   Max tokens: {max_tokens}")
 
-    def create_basic_chain(self):
+    def create_basic_chain(self) -> Any:
         """
         Create a basic RAG chain without conversation memory.
 
@@ -136,7 +137,7 @@ Context: {context}"""
         self,
         memory_type: str = "buffer",
         window_size: int = 5
-    ):
+    ) -> Any:
         """
         Create a conversational RAG chain with memory.
 
@@ -241,7 +242,7 @@ class RAGChatbot:
                 "error": True
             }
 
-    def _format_sources(self, documents) -> list:
+    def _format_sources(self, documents: List[Document]) -> List[Dict[str, Any]]:
         """
         Format source documents for display.
 

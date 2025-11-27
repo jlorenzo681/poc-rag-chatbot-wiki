@@ -3,31 +3,32 @@ Streamlit Web Interface for Document Q&A Chatbot
 A RAG-based chatbot with interactive document upload and chat interface.
 """
 
-import streamlit as st
 import os
-import sys
-from pathlib import Path
 import re
+import sys
+from typing import Literal, List, Dict, Any, Optional
+
+import streamlit as st
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.chatbot.core.document_processor import DocumentProcessor
-from src.chatbot.core.vector_store_manager import VectorStoreManager
-from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
 from config.settings import DOCUMENTS_DIR
-
+from src.chatbot.core.document_processor import DocumentProcessor
+from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
+from src.chatbot.core.vector_store_manager import VectorStoreManager
 
 # Page configuration
 st.set_page_config(
     page_title="Document Q&A Chatbot",
     page_icon="📚",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # Custom CSS for better UI
-st.markdown("""
+st.markdown(
+    """
 <style>
     .main-header {
         font-size: 2.5rem;
@@ -47,10 +48,12 @@ st.markdown("""
         margin-top: 0.5rem;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
-def initialize_session_state():
+def initialize_session_state() -> None:
     """Initialize session state variables."""
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -78,20 +81,22 @@ def save_uploaded_file(uploaded_file) -> str:
 
     # Sanitize filename: remove special characters, keep alphanumeric, dots, hyphens, underscores
     original_name = uploaded_file.name
-    name_parts = original_name.rsplit('.', 1)
+    name_parts = original_name.rsplit(".", 1)
     base_name = name_parts[0]
-    extension = name_parts[1] if len(name_parts) > 1 else ''
+    extension = name_parts[1] if len(name_parts) > 1 else ""
 
     # Remove or replace invalid characters
-    sanitized_base = re.sub(r'[^\w\s\-\.]', '_', base_name)
+    sanitized_base = re.sub(r"[^\w\s\-\.]", "_", base_name)
     # Replace multiple spaces/underscores with single underscore
-    sanitized_base = re.sub(r'[\s_]+', '_', sanitized_base)
+    sanitized_base = re.sub(r"[\s_]+", "_", sanitized_base)
     # Remove leading/trailing underscores
-    sanitized_base = sanitized_base.strip('_')
+    sanitized_base = sanitized_base.strip("_")
 
     # Construct final filename without timestamp
     if sanitized_base:
-        final_filename = f"{sanitized_base}.{extension}" if extension else sanitized_base
+        final_filename = (
+            f"{sanitized_base}.{extension}" if extension else sanitized_base
+        )
     else:
         final_filename = f"document.{extension}" if extension else "document"
 
@@ -123,12 +128,11 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
                 vector_manager = VectorStoreManager(
                     embedding_type="openai",
                     openai_api_key=api_key,
-                    model_name="text-embedding-3-small"
+                    model_name="text-embedding-3-small",
                 )
             else:  # HuggingFace
                 vector_manager = VectorStoreManager(
-                    embedding_type="huggingface",
-                    model_name="all-MiniLM-L6-v2"
+                    embedding_type="huggingface", model_name="all-MiniLM-L6-v2"
                 )
 
         # Calculate file hash for caching
@@ -166,7 +170,24 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
         return False
 
 
-def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, lmstudio_url: str, model_name: str, temperature: float):
+LLMProvider = Literal["Groq", "Ollama", "LM Studio"]
+LLMProviderLower = Literal["groq", "ollama", "lmstudio"]
+
+PROVIDER_MAP: dict[LLMProvider, LLMProviderLower] = {
+    "Groq": "groq",
+    "Ollama": "ollama",
+    "LM Studio": "lmstudio",
+}
+
+
+def initialize_chatbot(
+    llm_provider: LLMProvider,
+    groq_api_key: str,
+    ollama_url: str,
+    lmstudio_url: str,
+    model_name: str,
+    temperature: float,
+):
     """
     Initialize the RAG chatbot.
 
@@ -184,7 +205,7 @@ def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, lm
 
         # Create RAG chain
         with st.spinner("🤖 Initializing chatbot..."):
-            provider_lower = llm_provider.lower().replace(" ", "")  # "LM Studio" -> "lmstudio"
+            provider_lower = PROVIDER_MAP[llm_provider]
 
             rag_chain = RAGChain(
                 retriever=retriever,
@@ -194,7 +215,7 @@ def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, lm
                 lmstudio_base_url=lmstudio_url,
                 model_name=model_name,
                 temperature=temperature,
-                max_tokens=500
+                max_tokens=500,
             )
 
             # Create conversational chain
@@ -203,10 +224,7 @@ def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, lm
             )
 
             # Create chatbot
-            chatbot = RAGChatbot(
-                chain=conversational_chain,
-                return_sources=True
-            )
+            chatbot = RAGChatbot(chain=conversational_chain, return_sources=True)
 
             st.session_state.chatbot = chatbot
             st.success("✓ Chatbot ready!")
@@ -215,7 +233,7 @@ def initialize_chatbot(llm_provider: str, groq_api_key: str, ollama_url: str, lm
         st.error(f"Error initializing chatbot: {str(e)}")
 
 
-def display_chat_message(role: str, content: str, sources=None):
+def display_chat_message(role: str, content: str, sources: Optional[List[Dict[str, Any]]] = None) -> None:
     """
     Display a chat message with optional sources.
 
@@ -233,18 +251,23 @@ def display_chat_message(role: str, content: str, sources=None):
                 for source in sources:
                     st.markdown(f"**Source {source['index']}:**")
                     st.markdown(f"```\n{source['content']}\n```")
-                    if source['metadata']:
+                    if source["metadata"]:
                         st.caption(f"Metadata: {source['metadata']}")
                     st.divider()
 
 
-def main():
+def main() -> None:
     """Main application function."""
     initialize_session_state()
 
     # Header
-    st.markdown('<p class="main-header">📚 Document Q&A Chatbot</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Upload documents and ask questions using RAG technology</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="main-header">📚 Document Q&A Chatbot</p>', unsafe_allow_html=True
+    )
+    st.markdown(
+        '<p class="sub-header">Upload documents and ask questions using RAG technology</p>',
+        unsafe_allow_html=True,
+    )
 
     # Sidebar configuration
     with st.sidebar:
@@ -255,7 +278,7 @@ def main():
         llm_provider = st.radio(
             "Choose Provider",
             ["Groq", "Ollama", "LM Studio"],
-            help="Groq: Cloud API (fast), Ollama: Local (containerized), LM Studio: Local (GPU accelerated)"
+            help="Groq: Cloud API (fast), Ollama: Local (containerized), LM Studio: Local (GPU accelerated)",
         )
 
         st.divider()
@@ -271,15 +294,13 @@ def main():
                 st.success("✓ Using GROQ_API_KEY from environment")
             else:
                 api_key = st.text_input(
-                    "Groq API Key",
-                    type="password",
-                    help="Enter your Groq API key"
+                    "Groq API Key", type="password", help="Enter your Groq API key"
                 )
 
             model_name = st.selectbox(
                 "Model",
                 ["llama-3.1-8b-instant", "mixtral-8x7b-32768"],
-                help="Select the Groq model to use"
+                help="Select the Groq model to use",
             )
         elif llm_provider == "Ollama":
             ollama_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
@@ -287,28 +308,32 @@ def main():
                 "Ollama Server URL",
                 value=ollama_url,
                 disabled=True,
-                help="Ollama server URL (from environment)"
+                help="Ollama server URL (from environment)",
             )
 
             model_name = st.selectbox(
                 "Model",
                 ["deepseek-r1:8b"],
-                help="Select the Ollama model (pull it first if needed)"
+                help="Select the Ollama model (pull it first if needed)",
             )
             api_key = ""
         else:  # LM Studio
-            st.warning("⚠️ Make sure LM Studio is running in server mode (Local Server tab)")
-            lmstudio_url = os.getenv("LMSTUDIO_BASE_URL", "http://host.docker.internal:1234/v1")
+            st.warning(
+                "⚠️ Make sure LM Studio is running in server mode (Local Server tab)"
+            )
+            lmstudio_url = os.getenv(
+                "LMSTUDIO_BASE_URL", "http://host.docker.internal:1234/v1"
+            )
             lmstudio_url = st.text_input(
                 "LM Studio Server URL",
                 value=lmstudio_url,
-                help="LM Studio server URL (default: http://host.docker.internal:1234/v1)"
+                help="LM Studio server URL (default: http://host.docker.internal:1234/v1)",
             )
 
             model_name = st.text_input(
                 "Model Name",
                 value="local-model",
-                help="Enter the model name loaded in LM Studio (or use 'local-model')"
+                help="Enter the model name loaded in LM Studio (or use 'local-model')",
             )
             api_key = ""
 
@@ -320,7 +345,7 @@ def main():
             "Embedding Model",
             ["HuggingFace (Free)", "OpenAI"],
             index=0,
-            help="HuggingFace runs locally, OpenAI requires API key"
+            help="HuggingFace runs locally, OpenAI requires API key",
         )
 
         st.divider()
@@ -334,7 +359,7 @@ def main():
             max_value=1.0,
             value=0.3,
             step=0.1,
-            help="Lower = more focused, Higher = more creative"
+            help="Lower = more focused, Higher = more creative",
         )
 
         st.divider()
@@ -344,31 +369,40 @@ def main():
         uploaded_file = st.file_uploader(
             "Upload PDF or Text File",
             type=["pdf", "txt", "md"],
-            help="Upload a document to create a knowledge base"
+            help="Upload a document to create a knowledge base",
         )
 
         # Process button
         can_process = uploaded_file and (
-            (llm_provider == "Groq" and api_key) or
-            llm_provider == "Ollama" or
-            (llm_provider == "LM Studio" and lmstudio_url)
+            (llm_provider == "Groq" and api_key)
+            or llm_provider == "Ollama"
+            or (llm_provider == "LM Studio" and lmstudio_url)
         )
 
         if uploaded_file and can_process:
             if st.button(
                 "🚀 Process Document",
                 use_container_width=True,
-                disabled=st.session_state.document_processed
+                disabled=st.session_state.document_processed,
             ):
                 # Save uploaded file
                 file_path = save_uploaded_file(uploaded_file)
 
                 # Process document
-                success = process_document(file_path, api_key if llm_provider == "Groq" else "", embedding_type)
+                success = process_document(
+                    file_path, api_key if llm_provider == "Groq" else "", embedding_type
+                )
 
                 if success:
                     # Initialize chatbot
-                    initialize_chatbot(llm_provider, api_key, ollama_url, lmstudio_url, model_name, temperature)
+                    initialize_chatbot(
+                        llm_provider,
+                        api_key,
+                        ollama_url,
+                        lmstudio_url,
+                        model_name,
+                        temperature,
+                    )
                     st.session_state.document_processed = True
 
                     # Note: File is kept in data/documents/ directory for reference
@@ -399,7 +433,9 @@ def main():
     # Main chat interface
     if not st.session_state.document_processed:
         # Welcome message
-        st.info("👈 Please upload a document and configure settings in the sidebar to get started")
+        st.info(
+            "👈 Please upload a document and configure settings in the sidebar to get started"
+        )
 
         # Example use cases
         col1, col2 = st.columns(2)
@@ -426,18 +462,13 @@ def main():
         # Display chat messages
         for message in st.session_state.messages:
             display_chat_message(
-                message["role"],
-                message["content"],
-                message.get("sources")
+                message["role"], message["content"], message.get("sources")
             )
 
         # Chat input
         if prompt := st.chat_input("Ask a question about your document..."):
             # Add user message
-            st.session_state.messages.append({
-                "role": "user",
-                "content": prompt
-            })
+            st.session_state.messages.append({"role": "user", "content": prompt})
             display_chat_message("user", prompt)
 
             # Generate response
@@ -456,16 +487,14 @@ def main():
                             for source in sources:
                                 st.markdown(f"**Source {source['index']}:**")
                                 st.markdown(f"```\n{source['content']}\n```")
-                                if source['metadata']:
+                                if source["metadata"]:
                                     st.caption(f"Metadata: {source['metadata']}")
                                 st.divider()
 
                     # Add to message history
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": answer,
-                        "sources": sources
-                    })
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": answer, "sources": sources}
+                    )
 
 
 if __name__ == "__main__":

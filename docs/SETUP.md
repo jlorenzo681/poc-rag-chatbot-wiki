@@ -4,7 +4,7 @@ This guide will help you set up and run the RAG Chatbot application.
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher
 - pip (Python package manager)
 - Groq API key ([Get one here](https://console.groq.com/keys))
 - Optional: OpenAI API key (only for OpenAI embeddings)

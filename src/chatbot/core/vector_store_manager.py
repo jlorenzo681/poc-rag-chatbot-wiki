@@ -3,8 +3,10 @@ Vector Store Manager Module
 Handles embeddings generation and vector store operations.
 """
 
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Any
 from langchain.schema import Document
+from langchain_core.embeddings import Embeddings
+from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import os
@@ -50,7 +52,7 @@ class VectorStoreManager:
         embedding_type: str,
         api_key: Optional[str],
         model_name: Optional[str]
-    ):
+    ) -> Embeddings:
         """
         Initialize the embeddings model.
 
@@ -210,7 +212,7 @@ class VectorStoreManager:
         results = self.vector_store.similarity_search(query, k=k)
         return results
 
-    def get_retriever(self, k: int = 4):
+    def get_retriever(self, k: int = 4) -> VectorStoreRetriever:
         """
         Get a retriever for the vector store.
 

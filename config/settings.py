@@ -4,55 +4,56 @@ Configuration settings for the RAG Chatbot application.
 
 import os
 from pathlib import Path
+from typing import List
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 # Project root directory
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT: Path = Path(__file__).parent.parent
 
 # Data directories
-DATA_DIR = PROJECT_ROOT / "data"
-DOCUMENTS_DIR = DATA_DIR / "documents"
-VECTOR_STORES_DIR = DATA_DIR / "vector_stores"
-LOGS_DIR = PROJECT_ROOT / "logs"
+DATA_DIR: Path = PROJECT_ROOT / "data"
+DOCUMENTS_DIR: Path = DATA_DIR / "documents"
+VECTOR_STORES_DIR: Path = DATA_DIR / "vector_stores"
+LOGS_DIR: Path = PROJECT_ROOT / "logs"
 
 # API Keys
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
 # Document Processing Settings
-DEFAULT_CHUNK_SIZE = 1000
-DEFAULT_CHUNK_OVERLAP = 200
+DEFAULT_CHUNK_SIZE: int = 1000
+DEFAULT_CHUNK_OVERLAP: int = 200
 
 # Embedding Settings
-DEFAULT_EMBEDDING_TYPE = "huggingface"  # or "openai"
-HUGGINGFACE_MODEL = "all-MiniLM-L6-v2"
-OPENAI_EMBEDDING_MODEL = "text-embedding-3-small"
+DEFAULT_EMBEDDING_TYPE: str = "huggingface"  # or "openai"
+HUGGINGFACE_MODEL: str = "all-MiniLM-L6-v2"
+OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
 
 # LLM Settings
-DEFAULT_LLM_MODEL = "llama-3.1-8b-instant8"
-DEFAULT_TEMPERATURE = 0.3
-DEFAULT_MAX_TOKENS = 500
+DEFAULT_LLM_MODEL: str = "llama-3.1-8b-instant8"
+DEFAULT_TEMPERATURE: float = 0.3
+DEFAULT_MAX_TOKENS: int = 500
 
 # Retrieval Settings
-DEFAULT_RETRIEVAL_K = 4
+DEFAULT_RETRIEVAL_K: int = 4
 
 # Memory Settings
-DEFAULT_MEMORY_TYPE = "buffer"  # or "window"
-DEFAULT_WINDOW_SIZE = 5
+DEFAULT_MEMORY_TYPE: str = "buffer"  # or "window"
+DEFAULT_WINDOW_SIZE: int = 5
 
 # Streamlit Settings
-STREAMLIT_PAGE_TITLE = "Document Q&A Chatbot"
-STREAMLIT_PAGE_ICON = "📚"
-STREAMLIT_LAYOUT = "wide"
+STREAMLIT_PAGE_TITLE: str = "Document Q&A Chatbot"
+STREAMLIT_PAGE_ICON: str = "📚"
+STREAMLIT_LAYOUT: str = "wide"
 
 # Supported file types
-SUPPORTED_FILE_TYPES = ["pdf", "txt", "md"]
+SUPPORTED_FILE_TYPES: List[str] = ["pdf", "txt", "md"]
 
 # Available Groq models
-GROQ_MODELS = [
+GROQ_MODELS: List[str] = [
     "llama-3.1-8b-instant",
     "compound"
 ]
