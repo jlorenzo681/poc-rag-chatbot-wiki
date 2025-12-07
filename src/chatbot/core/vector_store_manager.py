@@ -3,7 +3,7 @@ Vector Store Manager Module
 Handles embeddings generation and vector store operations.
 """
 
-from typing import List, Optional, Literal, Any
+from typing import List, Optional, Literal
 from langchain.schema import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStoreRetriever

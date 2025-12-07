@@ -28,7 +28,7 @@ help:
 # Install Python dependencies
 install:
 	@echo "Installing dependencies..."
-	pip install -r requirements.txt
+	uv sync
 	@echo "✓ Dependencies installed"
 
 # Build container image
