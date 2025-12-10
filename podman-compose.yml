@@ -11,7 +11,9 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+
       - OLLAMA_HOST=http://ollama:11434
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       # Persistent data volumes
       - ./data/documents:/app/data/documents:z
@@ -33,7 +35,20 @@ services:
     networks:
       - rag-network
     depends_on:
+
       - ollama
+      - redis
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - rag-network
+    volumes:
+      - redis-data:/data
 
   ollama:
     image: docker.io/ollama/ollama:latest
@@ -58,3 +73,4 @@ networks:
 
 volumes:
   ollama-data:
+  redis-data:

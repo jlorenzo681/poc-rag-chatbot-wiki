@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
             echo -e "${YELLOW}Unknown option: $1${NC}"
             echo "Usage: $0 [--pull-models] [--pull-model MODEL_NAME]"
             echo "  --pull-models           Pull all Ollama models after deployment"
-            echo "  --pull-model MODEL      Pull specific Ollama model (e.g., llama3.1:8b)"
+            echo "  --pull-model MODEL      Pull specific Ollama model (e.g., llama3.2:3b)"
             exit 1
             ;;
     esac
@@ -90,6 +90,10 @@ fi
 echo "Creating necessary directories..."
 mkdir -p data/documents data/vector_stores logs
 
+# Generate requirements.txt
+echo "Generating requirements.txt..."
+uv export --format requirements-txt > requirements.txt
+
 # Build the image only if it doesn't exist
 if ! podman image exists rag-chatbot:latest; then
     echo -e "\n${YELLOW}Image not found. Building container image...${NC}"
@@ -144,7 +148,7 @@ if podman ps | grep -q rag-chatbot && podman ps | grep -q ollama; then
     else
         echo -e "${YELLOW}Note: No Ollama models pulled. To pull models, run:${NC}"
         echo "  ./scripts/pull-ollama-models.sh --all"
-        echo "  or: ./scripts/pull-ollama-models.sh llama3.1:8b"
+        echo "  or: ./scripts/pull-ollama-models.sh llama3.2:3b"
     fi
 else
     echo -e "\n${RED}======================================"

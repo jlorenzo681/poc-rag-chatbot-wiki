@@ -11,6 +11,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import os
 import hashlib
+from .event_bus import EventBus, VectorStoreUpdateEvent
 
 # Optional: OpenAI embeddings (requires langchain-openai package)
 try:
@@ -29,7 +30,8 @@ class VectorStoreManager:
         self,
         embedding_type: Literal["openai", "huggingface"] = "huggingface",
         openai_api_key: Optional[str] = None,
-        model_name: Optional[str] = None
+        model_name: Optional[str] = None,
+        event_bus: Optional[EventBus] = None
     ):
         """
         Initialize the vector store manager.
@@ -46,6 +48,7 @@ class VectorStoreManager:
             model_name
         )
         self.vector_store = None
+        self.event_bus = event_bus
 
     def _initialize_embeddings(
         self,
@@ -140,6 +143,13 @@ class VectorStoreManager:
             self.save_vector_store(cache_path)
             print(f"✓ Vector store cached with key: {cache_key[:12]}...")
 
+        
+        if self.event_bus:
+            self.event_bus.publish(VectorStoreUpdateEvent(
+                operation="create",
+                document_count=len(documents)
+            ))
+
         return self.vector_store
 
     def save_vector_store(self, path: str = "faiss_index"):
@@ -175,6 +185,19 @@ class VectorStoreManager:
             allow_dangerous_deserialization=True
         )
         print("✓ Vector store loaded successfully")
+
+        if self.event_bus and self.vector_store:
+            # Note: We can't easily distinguish document count on load with FAISS without accessing index
+            # accessing self.vector_store.index.ntotal if available
+            count = 0
+            if hasattr(self.vector_store, 'index'):
+                count = self.vector_store.index.ntotal
+                
+            self.event_bus.publish(VectorStoreUpdateEvent(
+                operation="load",
+                document_count=count
+            ))
+
         return self.vector_store
 
     def add_documents(self, documents: List[Document]):
@@ -190,6 +213,12 @@ class VectorStoreManager:
         print(f"\n➕ Adding {len(documents)} documents to vector store...")
         self.vector_store.add_documents(documents)
         print("✓ Documents added successfully")
+        
+        if self.event_bus:
+            self.event_bus.publish(VectorStoreUpdateEvent(
+                operation="add",
+                document_count=len(documents)
+            ))
 
     def similarity_search(
         self,

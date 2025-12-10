@@ -33,7 +33,7 @@ while [[ $# -gt 0 ]]; do
             echo -e "${YELLOW}Unknown option: $1${NC}"
             echo "Usage: $0 [--pull-models] [--pull-model MODEL_NAME]"
             echo "  --pull-models           Pull all Ollama models after starting"
-            echo "  --pull-model MODEL      Pull specific Ollama model (e.g., llama3.1:8b)"
+            echo "  --pull-model MODEL      Pull specific Ollama model (e.g., llama3.2:3b)"
             exit 1
             ;;
     esac
@@ -60,17 +60,20 @@ fi
 
 echo -e "${GREEN}✓ Podman is installed${NC}"
 
+# Compose file location
+COMPOSE_FILE="podman-compose.yml"
+
 # Check if podman-compose is available
 if command -v podman-compose &> /dev/null; then
-    COMPOSE_CMD="podman-compose"
+    COMPOSE_CMD="podman-compose -f $COMPOSE_FILE"
     echo -e "${GREEN}✓ Using podman-compose${NC}"
 elif command -v docker-compose &> /dev/null; then
-    COMPOSE_CMD="docker-compose"
+    COMPOSE_CMD="docker-compose -f $COMPOSE_FILE"
     echo -e "${YELLOW}⚠ Using docker-compose with Podman${NC}"
 else
     echo -e "${YELLOW}⚠ podman-compose not found, installing...${NC}"
     pip install podman-compose
-    COMPOSE_CMD="podman-compose"
+    COMPOSE_CMD="podman-compose -f $COMPOSE_FILE"
 fi
 
 # Start Ollama service first using compose
@@ -168,7 +171,7 @@ if podman ps | grep -q rag-chatbot; then
     else
         echo -e "${YELLOW}Note: No Ollama models pulled. To pull models, run:${NC}"
         echo "  ./scripts/pull-ollama-models.sh --all"
-        echo "  or: ./scripts/pull-ollama-models.sh llama3.1:8b"
+        echo "  or: ./scripts/pull-ollama-models.sh llama3.2:3b"
     fi
 else
     echo -e "\n${RED}======================================"

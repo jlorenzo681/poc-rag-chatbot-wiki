@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 
 # Parse flags
 REMOVE_IMAGES=false
-REMOVE_VOLUMES=falsemake
+REMOVE_VOLUMES=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in

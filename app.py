@@ -17,6 +17,7 @@ from config.settings import DOCUMENTS_DIR
 from src.chatbot.core.document_processor import DocumentProcessor
 from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
 from src.chatbot.core.vector_store_manager import VectorStoreManager
+from src.chatbot.core.event_bus import EventBus, Event, DocumentUploadEvent, ProcessingCompleteEvent, ChatResponseEvent, ErrorEvent
 
 # Page configuration
 st.set_page_config(
@@ -63,6 +64,20 @@ def initialize_session_state() -> None:
         st.session_state.vector_store_manager = None
     if "document_processed" not in st.session_state:
         st.session_state.document_processed = False
+    if "last_uploaded_filename" not in st.session_state:
+        st.session_state.last_uploaded_filename = None
+    
+    if "event_bus" not in st.session_state:
+        st.session_state.event_bus = EventBus()
+        # Register a simple console logger for demonstration
+        def log_event(event: Event):
+            print(f"🔔 EVENT: {type(event).__name__}: {event}")
+            
+        st.session_state.event_bus.subscribe(Event, log_event)
+        st.session_state.event_bus.subscribe(DocumentUploadEvent, log_event)
+        st.session_state.event_bus.subscribe(ProcessingCompleteEvent, log_event)
+        st.session_state.event_bus.subscribe(ChatResponseEvent, log_event)
+        st.session_state.event_bus.subscribe(ErrorEvent, log_event)
 
 
 def save_uploaded_file(uploaded_file) -> str:
@@ -106,6 +121,13 @@ def save_uploaded_file(uploaded_file) -> str:
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getvalue())
 
+    # Emit upload event
+    if "event_bus" in st.session_state:
+        st.session_state.event_bus.publish(DocumentUploadEvent(
+            filename=original_name,
+            file_path=str(file_path)
+        ))
+
     return str(file_path)
 
 
@@ -129,10 +151,13 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
                     embedding_type="openai",
                     openai_api_key=api_key,
                     model_name="text-embedding-3-small",
+                    event_bus=st.session_state.event_bus
                 )
             else:  # HuggingFace
                 vector_manager = VectorStoreManager(
-                    embedding_type="huggingface", model_name="all-MiniLM-L6-v2"
+                    embedding_type="huggingface", 
+                    model_name="all-MiniLM-L6-v2",
+                    event_bus=st.session_state.event_bus
                 )
 
         # Calculate file hash for caching
@@ -148,7 +173,11 @@ def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
                 return True
 
         # If not cached, process document
-        processor = DocumentProcessor(chunk_size=1000, chunk_overlap=200)
+        processor = DocumentProcessor(
+            chunk_size=1000, 
+            chunk_overlap=200,
+            event_bus=st.session_state.event_bus
+        )
 
         # Process document
         with st.spinner("📄 Loading and chunking document..."):
@@ -224,7 +253,15 @@ def initialize_chatbot(
             )
 
             # Create chatbot
-            chatbot = RAGChatbot(chain=conversational_chain, return_sources=True)
+            chatbot = RAGChatbot(
+                chain=conversational_chain, 
+                return_sources=True,
+                event_bus=st.session_state.event_bus,
+                event_metadata={
+                    "llm_provider": llm_provider,
+                    "model_name": model_name
+                }
+            )
 
             st.session_state.chatbot = chatbot
             st.success("✓ Chatbot ready!")
@@ -313,7 +350,7 @@ def main() -> None:
 
             model_name = st.selectbox(
                 "Model",
-                ["deepseek-r1:8b"],
+                ["llama3.2:3b"],
                 help="Select the Ollama model (pull it first if needed)",
             )
             api_key = ""
@@ -372,6 +409,24 @@ def main() -> None:
             help="Upload a document to create a knowledge base",
         )
 
+        # Check if file has changed
+        if uploaded_file:
+            if uploaded_file.name != st.session_state.last_uploaded_filename:
+                # File changed - reset state
+                st.session_state.document_processed = False
+                st.session_state.chatbot = None
+                st.session_state.vector_store_manager = None
+                st.session_state.messages = []
+                st.session_state.last_uploaded_filename = uploaded_file.name
+        else:
+            # File removed
+            if st.session_state.last_uploaded_filename is not None:
+                st.session_state.document_processed = False
+                st.session_state.chatbot = None
+                st.session_state.vector_store_manager = None
+                st.session_state.messages = []
+                st.session_state.last_uploaded_filename = None
+
         # Process button
         can_process = uploaded_file and (
             (llm_provider == "Groq" and api_key)
@@ -416,9 +471,10 @@ def main() -> None:
 
         # Reset button
         if st.session_state.document_processed:
-            if st.button("🔄 Reset Chat", use_container_width=True):
-                if st.session_state.chatbot:
-                    st.session_state.chatbot.reset_conversation()
+            if st.button("🔄 Start Over", use_container_width=True):
+                st.session_state.document_processed = False
+                st.session_state.chatbot = None
+                st.session_state.vector_store_manager = None
                 st.session_state.messages = []
                 st.rerun()
 

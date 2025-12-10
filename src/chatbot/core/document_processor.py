@@ -8,6 +8,8 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader, WebBas
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 import os
+import time
+from .event_bus import EventBus, ProcessingStartEvent, ProcessingCompleteEvent
 
 
 class DocumentProcessor:
@@ -19,7 +21,8 @@ class DocumentProcessor:
         self,
         chunk_size: int = 1000,
         chunk_overlap: int = 200,
-        add_start_index: bool = True
+        add_start_index: bool = True,
+        event_bus: Optional[EventBus] = None
     ):
         """
         Initialize the document processor.
@@ -37,6 +40,7 @@ class DocumentProcessor:
             add_start_index=add_start_index,
             separators=["\n\n", "\n", " ", ""]
         )
+        self.event_bus = event_bus
 
     def load_pdf(self, file_path: str) -> List[Document]:
         """
@@ -151,8 +155,40 @@ class DocumentProcessor:
             List of chunked Document objects
         """
         print(f"\n📄 Processing document: {file_path}")
+        
+        start_time = time.time()
+        
+        if doc_type is None:
+            # Simple auto-detection for event info (full detection logic is inside load_document)
+            if file_path.startswith('http://') or file_path.startswith('https://'):
+                dt = 'url'
+            elif file_path.endswith('.pdf'):
+                dt = 'pdf'
+            elif file_path.endswith('.txt') or file_path.endswith('.md'):
+                dt = 'txt'
+            else:
+                dt = 'unknown'
+        else:
+            dt = doc_type
+
+        # Emit start event
+        if self.event_bus:
+            self.event_bus.publish(ProcessingStartEvent(
+                file_path=str(file_path),
+                doc_type=dt
+            ))
+
         documents = self.load_document(file_path, doc_type)
         chunks = self.split_documents(documents)
+        
+        # Emit complete event
+        if self.event_bus:
+            self.event_bus.publish(ProcessingCompleteEvent(
+                file_path=str(file_path),
+                chunk_count=len(chunks),
+                duration_seconds=time.time() - start_time
+            ))
+            
         return chunks
 
 

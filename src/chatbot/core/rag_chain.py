@@ -12,7 +12,10 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
+from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+import time
+from .event_bus import EventBus, ChatQueryEvent, ChatResponseEvent, ErrorEvent
 
 
 class RAGChain:
@@ -188,7 +191,9 @@ class RAGChatbot:
     def __init__(
         self,
         chain,
-        return_sources: bool = True
+        return_sources: bool = True,
+        event_bus: Optional[EventBus] = None,
+        event_metadata: Optional[Dict[str, Any]] = None
     ):
         """
         Initialize the RAG chatbot.
@@ -196,9 +201,13 @@ class RAGChatbot:
         Args:
             chain: RAG chain instance
             return_sources: Whether to return source documents
+            event_bus: Event bus for publishing events
+            event_metadata: Metadata for events (llm_provider, model_name, etc.)
         """
         self.chain = chain
         self.return_sources = return_sources
+        self.event_bus = event_bus
+        self.event_metadata = event_metadata or {}
 
     def ask(self, question: str) -> Dict[str, Any]:
         """
@@ -211,6 +220,16 @@ class RAGChatbot:
             Dictionary containing answer and optional source documents
         """
         try:
+            start_time = time.time()
+            
+            # Emit query event
+            if self.event_bus:
+                self.event_bus.publish(ChatQueryEvent(
+                    question=question,
+                    llm_provider=self.event_metadata.get("llm_provider", "unknown"),
+                    model_name=self.event_metadata.get("model_name", "unknown")
+                ))
+
             # Check if it's a conversational chain
             if hasattr(self.chain, 'memory'):
                 response = self.chain({"question": question})
@@ -230,9 +249,24 @@ class RAGChatbot:
                 if sources:
                     result["sources"] = self._format_sources(sources)
 
+            # Emit response event
+            if self.event_bus:
+                self.event_bus.publish(ChatResponseEvent(
+                    question=question,
+                    answer=result["answer"],
+                    source_count=len(result.get("sources", [])),
+                    duration_seconds=time.time() - start_time
+                ))
+
             return result
 
         except Exception as e:
+            if self.event_bus:
+                self.event_bus.publish(ErrorEvent(
+                    error_type=type(e).__name__,
+                    message=str(e),
+                    context={"question": question}
+                ))
             import traceback
             error_details = traceback.format_exc()
             print(f"Error in RAG chain: {error_details}")
