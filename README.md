@@ -19,6 +19,7 @@ The system consists of four main components:
 2. **Vector Store Manager** (`vector_store_manager.py`): Creates and manages embeddings and vector search
 3. **RAG Chain** (`rag_chain.py`): Implements retrieval and generation logic with conversation memory
 4. **Web Interface** (`app.py`): Streamlit-based user interface
+5. **Event Bus** (`event_bus.py`): Central communication system for decoupling components
 
 ## Installation
 
@@ -174,6 +175,43 @@ chatbot = RAGChatbot(chain, return_sources=True)
 response = chatbot.ask("What is this document about?")
 ```
 
+### EventBus
+
+Implements a lightweight, synchronous event system for decoupled communication:
+
+```python
+from chatbot.core.event_bus import EventBus, ErrorEvent
+
+# 1. Subscribe to events
+def on_error(event: ErrorEvent):
+    print(f"Alert: {event.message}")
+
+bus = EventBus()
+bus.subscribe(ErrorEvent, on_error)
+
+# 2. Publish events
+bus.publish(ErrorEvent(error_type="Validation", message="File too large"))
+```
+
+**Key Components**:
+- **Singleton Pattern**: Ensures one global event bus instance
+- **Typed Events**: Dataclasses for `DocumentUploadEvent`, `ProcessingStartEvent`, `ErrorEvent`, etc.
+- **Polymorphic Dispatch**: Subscribers receive events of the subscribed type and its subclasses
+
+#### Hybrid Architecture (Redis + In-Memory)
+The system implements a **Hybrid Event Architecture** to balance performance and scalability:
+
+- **In-Memory (Synchronous)**: Used for UI updates and instant feedback. Guaranteed sub-millisecond latency.
+- **Redis Pub/Sub (Asynchronous)**: Used for heavy background tasks (document processing) and cross-process communication.
+
+**Configuration**:
+Set `REDIS_URL` in your `.env` to enable hybrid mode:
+```env
+REDIS_URL=redis://localhost:6379/0
+```
+If `REDIS_URL` is missing, the system gracefully degrades to purely in-memory mode (Monolithic).
+
+
 ## Example Use Cases
 
 ### Research Assistant
@@ -185,8 +223,8 @@ Load API documentation or technical manuals and query for specific implementatio
 ### Legal Document Analysis
 Upload contracts or legal documents and extract key terms and clauses.
 
-### Coffee Equipment Knowledge Base
-*(As mentioned in the tutorial)*
+### Quick home test: Coffee Equipment Knowledge Base
+
 Upload all your coffee equipment specs, brewing guides, and recipes, then ask:
 - "What's the optimal brew ratio for my Comandante C40?"
 - "Compare thermal properties of different drippers"

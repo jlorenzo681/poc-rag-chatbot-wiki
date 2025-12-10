@@ -25,8 +25,8 @@ This will start both the chatbot and Ollama containers:
 Before using Ollama, you need to pull at least one model:
 
 ```bash
-# Pull llama3.1:8b (recommended, ~4.7GB)
-podman exec ollama ollama pull llama3.1:8b
+# Pull llama3.2:3b (recommended)
+podman exec ollama ollama pull llama3.2:3b
 
 # Or pull other models
 podman exec ollama ollama pull llama3.1:70b  # Large model, ~40GB
@@ -59,8 +59,8 @@ podman exec ollama ollama pull llama3.1:70b  # Large model, ~40GB
 
 ## Available Models
 
-### Small Models (~5GB)
-- `llama3.1:8b` - Fast, good quality
+### Small Models
+- `llama3.2:3b` - Fast, good quality
 - `mistral:latest` - Fast, lightweight
 
 ### Medium Models (~20GB)
@@ -120,7 +120,7 @@ podman logs ollama
 podman exec ollama ollama list
 
 # Pull the missing model
-podman exec ollama ollama pull llama3.1:8b
+podman exec ollama ollama pull llama3.2:3b
 ```
 
 ### Connection error

@@ -19,6 +19,7 @@ dependencies = [
     "python-dotenv==1.0.1",
     "sentence-transformers==3.0.1",
     "streamlit==1.39.0",
+    "redis>=5.0.0",
     "tiktoken==0.7.0",
     "torch==2.4.1",
     "transformers==4.44.2",

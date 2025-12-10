@@ -16,8 +16,7 @@ echo "======================================${NC}"
 
 # Models available in the app (from app.py line 291)
 MODELS=(
-    "llama3.1:8b"
-    "deepseek-r1:8b"
+    "llama3.2:3b"
 )
 
 # Check if ollama container is running
