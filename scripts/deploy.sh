@@ -106,6 +106,14 @@ fi
 echo -e "\n${YELLOW}Stopping existing containers...${NC}"
 $COMPOSE_CMD down 2>/dev/null || true
 
+# Cleanup buildx container which can block startup
+if podman ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
+    echo -e "${YELLOW}Stopping and removing buildx_buildkit_default container...${NC}"
+    podman stop buildx_buildkit_default >/dev/null 2>&1 || true
+    podman rm buildx_buildkit_default >/dev/null 2>&1 || true
+    echo -e "${GREEN}✓ buildx_buildkit_default removed${NC}"
+fi
+
 # Start all services using compose
 echo -e "\n${GREEN}Starting RAG Chatbot and Ollama services...${NC}"
 $COMPOSE_CMD up -d
