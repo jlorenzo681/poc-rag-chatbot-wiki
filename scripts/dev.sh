@@ -76,59 +76,21 @@ else
     COMPOSE_CMD="podman-compose -f $COMPOSE_FILE"
 fi
 
-# Start Ollama service first using compose
-echo -e "\n${YELLOW}Starting Ollama service...${NC}"
-$COMPOSE_CMD up -d ollama
-
-# Wait for Ollama to be ready
-echo -e "${YELLOW}Waiting for Ollama to start...${NC}"
-sleep 5
-
-# Stop and remove existing rag-chatbot development container if running
-echo -e "\n${YELLOW}Stopping existing development container...${NC}"
-podman stop rag-chatbot 2>/dev/null || true
-podman rm rag-chatbot 2>/dev/null || true
-
-# Check if image exists, build if needed
-if ! podman image exists rag-chatbot:latest; then
-    echo -e "\n${YELLOW}Image not found. Building...${NC}"
-    ./scripts/build.sh
-else
-    echo -e "\n${GREEN}✓ Image rag-chatbot:latest exists${NC}"
+# Cleanup buildx container which can block startup
+if podman ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
+    echo -e "${YELLOW}Stopping and removing buildx_buildkit_default container...${NC}"
+    podman stop buildx_buildkit_default >/dev/null 2>&1 || true
+    podman rm buildx_buildkit_default >/dev/null 2>&1 || true
+    echo -e "${GREEN}✓ buildx_buildkit_default removed${NC}"
 fi
 
-# Create necessary directories
-echo -e "\n${YELLOW}Creating necessary directories...${NC}"
-mkdir -p data/documents data/vector_stores logs
+# Start all services using compose
+echo -e "\n${GREEN}Starting development stack (Ollama, Redis, Backend, Worker, Frontend)...${NC}"
+$COMPOSE_CMD up --build -d
 
-# Get the compose network name
-NETWORK_NAME=$(podman network ls --format '{{.Name}}' | grep 'rag-network' | head -1)
-if [ -z "$NETWORK_NAME" ]; then
-    NETWORK_NAME="poc-rag-chatbot-wiki_rag-network"
-fi
-
-# Start container with source code mounted and connected to the compose network
-echo -e "\n${GREEN}Starting development container with hot reload...${NC}"
-podman run -d \
-    --name rag-chatbot \
-    -p 8501:8501 \
-    --network "$NETWORK_NAME" \
-    --user root \
-    -e GROQ_API_KEY="$GROQ_API_KEY" \
-    -e OPENAI_API_KEY="$OPENAI_API_KEY" \
-    -e OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://ollama:11434}" \
-    -v ./app.py:/app/app.py:z \
-    -v ./src:/app/src:z \
-    -v ./config:/app/config:z \
-    -v ./.streamlit:/app/.streamlit:z \
-    -v ./data/documents:/app/data/documents:z \
-    -v ./data/vector_stores:/app/data/vector_stores:z \
-    -v ./logs:/app/logs:z \
-    rag-chatbot:latest
-
-# Wait for container to start
-echo -e "\n${YELLOW}Waiting for container to start...${NC}"
-sleep 3
+# Wait for services to be ready
+echo -e "${YELLOW}Waiting for services to start...${NC}"
+sleep 10
 
 # Check if containers are running
 if podman ps | grep -q rag-chatbot; then
@@ -137,7 +99,10 @@ if podman ps | grep -q rag-chatbot; then
     echo "======================================${NC}"
     echo ""
     echo "Services running:"
-    echo "  - RAG Chatbot: http://localhost:8501"
+    echo "  - Frontend:      http://localhost:8501"
+    echo "  - Backend API:   http://localhost:8000/docs"
+    echo "  - Ollama:        http://localhost:11434"
+
     echo "  - Ollama:      http://localhost:11434"
     echo ""
     echo "Hot reload enabled for:"

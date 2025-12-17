@@ -72,6 +72,12 @@ else
         podman rm ollama 2>/dev/null || true
         echo -e "${GREEN}✓ ollama container removed${NC}"
     fi
+
+    if podman ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
+        podman stop buildx_buildkit_default >/dev/null 2>&1 || true
+        podman rm buildx_buildkit_default >/dev/null 2>&1 || true
+        echo -e "${GREEN}✓ buildx_buildkit_default container removed${NC}"
+    fi
 fi
 
 # Remove images if flag set

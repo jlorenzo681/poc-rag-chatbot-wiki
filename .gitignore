@@ -205,3 +205,5 @@ logs/*
 .claude/
 
 .vscode/
+# Host OS Specific
+.DS_Store

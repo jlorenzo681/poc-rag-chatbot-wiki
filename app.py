@@ -6,6 +6,7 @@ A RAG-based chatbot with interactive document upload and chat interface.
 import os
 import re
 import sys
+import time
 from typing import Literal, List, Dict, Any, Optional
 
 import streamlit as st
@@ -14,10 +15,13 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config.settings import DOCUMENTS_DIR
-from src.chatbot.core.document_processor import DocumentProcessor
+# DocumentProcessor is now used by backend only
 from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
 from src.chatbot.core.vector_store_manager import VectorStoreManager
 from src.chatbot.core.event_bus import EventBus, Event, DocumentUploadEvent, ProcessingCompleteEvent, ChatResponseEvent, ErrorEvent
+
+import requests
+BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 
 # Page configuration
 st.set_page_config(
@@ -80,123 +84,92 @@ def initialize_session_state() -> None:
         st.session_state.event_bus.subscribe(ErrorEvent, log_event)
 
 
-def save_uploaded_file(uploaded_file) -> str:
-    """
-    Save uploaded file to documents directory with sanitized filename.
-    Files with the same name will be overwritten, allowing cache reuse.
 
+
+
+def process_document(uploaded_file, api_key: str, embedding_type: str) -> tuple[bool, Optional[str]]:
+    """
+    Process uploaded document via Backend API.
+    
     Args:
-        uploaded_file: Streamlit uploaded file object
-
+        uploaded_file: Streamlit file object
+        api_key: API key
+        embedding_type: Embedding type
+        
     Returns:
-        Path to saved file
+        Tuple (Success, File Hash)
     """
-    # Ensure documents directory exists
-    DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Sanitize filename: remove special characters, keep alphanumeric, dots, hyphens, underscores
-    original_name = uploaded_file.name
-    name_parts = original_name.rsplit(".", 1)
-    base_name = name_parts[0]
-    extension = name_parts[1] if len(name_parts) > 1 else ""
-
-    # Remove or replace invalid characters
-    sanitized_base = re.sub(r"[^\w\s\-\.]", "_", base_name)
-    # Replace multiple spaces/underscores with single underscore
-    sanitized_base = re.sub(r"[\s_]+", "_", sanitized_base)
-    # Remove leading/trailing underscores
-    sanitized_base = sanitized_base.strip("_")
-
-    # Construct final filename without timestamp
-    if sanitized_base:
-        final_filename = (
-            f"{sanitized_base}.{extension}" if extension else sanitized_base
-        )
-    else:
-        final_filename = f"document.{extension}" if extension else "document"
-
-    file_path = DOCUMENTS_DIR / final_filename
-
-    # Overwrite if file already exists
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getvalue())
-
-    # Emit upload event
-    if "event_bus" in st.session_state:
-        st.session_state.event_bus.publish(DocumentUploadEvent(
-            filename=original_name,
-            file_path=str(file_path)
-        ))
-
-    return str(file_path)
-
-
-def process_document(file_path: str, api_key: str, embedding_type: str) -> bool:
-    """
-    Process uploaded document and create vector store.
-
-    Args:
-        file_path: Path to document
-        api_key: API key for embeddings (if using OpenAI)
-        embedding_type: Type of embeddings to use
-
-    Returns:
-        True if successful, False otherwise
-    """
+    files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
+    data = {"api_key": api_key, "embedding_type": embedding_type}
+    
     try:
-        # Initialize vector store manager first (needed for hash calculation)
-        with st.spinner(f"🔧 Initializing {embedding_type} embeddings..."):
-            if embedding_type == "OpenAI":
-                vector_manager = VectorStoreManager(
-                    embedding_type="openai",
-                    openai_api_key=api_key,
-                    model_name="text-embedding-3-small",
-                    event_bus=st.session_state.event_bus
-                )
-            else:  # HuggingFace
-                vector_manager = VectorStoreManager(
-                    embedding_type="huggingface", 
-                    model_name="all-MiniLM-L6-v2",
-                    event_bus=st.session_state.event_bus
-                )
-
-        # Calculate file hash for caching
-        file_hash = vector_manager.get_file_hash(file_path)
-        cache_path = f"data/vector_stores/{file_hash}"
-
-        # Check if cached vector store exists
-        if os.path.exists(cache_path):
-            with st.spinner("📦 Loading cached vector store..."):
+        # 1. Upload and Start Task
+        with st.spinner("🚀 Uploading to backend..."):
+            response = requests.post(f"{BACKEND_URL}/upload", files=files, data=data)
+            response.raise_for_status()
+            task_info = response.json()
+            task_id = task_info["task_id"]
+            
+        # 2. Poll Status
+        progress_bar = st.progress(0, text="Starting processing...")
+        status = "PENDING"
+        
+        while status not in ["SUCCESS", "FAILURE"]:
+            time.sleep(0.5)
+            try:
+                res = requests.get(f"{BACKEND_URL}/tasks/{task_id}")
+                res.raise_for_status()
+                task_status = res.json()
+                status = task_status["status"]
+                
+                if status == "PROGRESS":
+                    info = task_status.get("result", {})
+                    msg = info.get("status", "Processing...")
+                    progress_bar.progress(50, text=f"⏳ {msg}")
+            except Exception as e:
+                # Tolerate transient polling errors
+                print(f"Polling error: {e}")
+                continue
+            
+        if status == "SUCCESS":
+            progress_bar.progress(100, text="✅ Processing complete!")
+            time.sleep(0.5) 
+            progress_bar.empty()
+            
+            result = task_status["result"]
+            file_hash = result.get("file_hash")
+            
+            # 3. Load Vector Store Locally (Read-Only)
+            # We need to initialize the manager to access the cached store
+            with st.spinner("📦 Loading vector store..."):
+                if embedding_type == "OpenAI":
+                    vector_manager = VectorStoreManager(
+                        embedding_type="openai",
+                        openai_api_key=api_key,
+                        model_name="text-embedding-3-small",
+                        event_bus=st.session_state.event_bus
+                    )
+                else: 
+                    vector_manager = VectorStoreManager(
+                        embedding_type="huggingface", 
+                        model_name="all-MiniLM-L6-v2",
+                        event_bus=st.session_state.event_bus
+                    )
+                
+                cache_path = f"data/vector_stores/{file_hash}"
                 vector_manager.load_vector_store(cache_path)
-                st.success("✓ Loaded from cache (document already processed)")
                 st.session_state.vector_store_manager = vector_manager
-                return True
-
-        # If not cached, process document
-        processor = DocumentProcessor(
-            chunk_size=1000, 
-            chunk_overlap=200,
-            event_bus=st.session_state.event_bus
-        )
-
-        # Process document
-        with st.spinner("📄 Loading and chunking document..."):
-            chunks = processor.process_document(file_path)
-            st.success(f"✓ Created {len(chunks)} chunks")
-
-        # Create vector store with caching
-        with st.spinner("🔄 Creating vector store..."):
-            vector_manager.create_vector_store(chunks, cache_key=file_hash)
-            st.success("✓ Vector store created and cached")
-
-        # Store in session state
-        st.session_state.vector_store_manager = vector_manager
-
-        return True
+                
+            return True, file_hash
+            
+        else:
+            error_msg = task_status.get("error", "Unknown error")
+            st.error(f"Task failed: {error_msg}")
+            return False, None
 
     except Exception as e:
-        st.error(f"Error processing document: {str(e)}")
-        return False
+        st.error(f"Backend communication error: {str(e)}")
+        return False, None
 
 
 LLMProvider = Literal["Groq", "Ollama", "LM Studio"]
@@ -440,12 +413,9 @@ def main() -> None:
                 use_container_width=True,
                 disabled=st.session_state.document_processed,
             ):
-                # Save uploaded file
-                file_path = save_uploaded_file(uploaded_file)
-
-                # Process document
-                success = process_document(
-                    file_path, api_key if llm_provider == "Groq" else "", embedding_type
+                # Process document via API (No local save needed here, API handles it)
+                success, file_hash = process_document(
+                    uploaded_file, api_key if llm_provider == "Groq" else "", embedding_type
                 )
 
                 if success:
