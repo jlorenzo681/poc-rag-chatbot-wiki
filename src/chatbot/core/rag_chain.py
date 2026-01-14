@@ -113,7 +113,7 @@ Context: {context}"""
 
     def create_basic_chain(self) -> Any:
         """
-        Create a basic RAG chain without conversation memory.
+        Create a basic RAG chain without conversation memory. Example purpose.
 
         Returns:
             Retrieval chain
