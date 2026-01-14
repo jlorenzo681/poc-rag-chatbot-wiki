@@ -202,7 +202,7 @@ bus.publish(ErrorEvent(error_type="Validation", message="File too large"))
 The system implements a **Hybrid Event Architecture** to balance performance and scalability:
 
 - **In-Memory (Synchronous)**: Used for UI updates and instant feedback. Guaranteed sub-millisecond latency.
-- **Redis Pub/Sub (Asynchronous)**: Used for heavy background tasks (document processing) and cross-process communication.
+- **Redis Pub/Sub Event Driven (Asynchronous)**: Used for heavy background tasks (document processing) and cross-process communication.
 
 **Configuration**:
 Set `REDIS_URL` in your `.env` to enable hybrid mode:
