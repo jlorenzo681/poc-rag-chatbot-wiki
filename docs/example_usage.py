@@ -22,11 +22,8 @@ def example_basic_usage() -> None:
     print("Example 1: Basic Document Q&A")
     print("=" * 60)
 
-    # Check for API key
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        print("⚠️  Please set GROQ_API_KEY environment variable")
-        return
+    # API key check removed as we use local embeddings/LLM by default (or Ollama/LMStudio in theory)
+
 
     # Step 1: Process document
     print("\n📄 Step 1: Processing document...")
@@ -67,9 +64,8 @@ def example_basic_usage() -> None:
     retriever = vector_manager.get_retriever(k=3)
     rag_chain = RAGChain(
         retriever=retriever,
-        groq_api_key=api_key,
-        model_name="llama-3.1-8b-instant",
-        temperature=0.3
+        model_name="llama3.2:3b",  # Using Ollama
+        llm_provider="ollama"
     )
 
     # Create conversational chain
@@ -105,10 +101,8 @@ def example_save_and_load() -> None:
     print("Example 2: Save and Load Vector Store")
     print("=" * 60)
 
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        print("⚠️  Please set GROQ_API_KEY environment variable")
-        return
+    # API key check removed
+
 
     # Create sample document
     sample_doc = "sample_doc_2.txt"
@@ -152,8 +146,8 @@ def example_save_and_load() -> None:
     retriever = new_manager.get_retriever(k=2)
     rag_chain = RAGChain(
         retriever=retriever,
-        groq_api_key=api_key,
-        model_name="llama-3.1-8b-instant"
+        model_name="llama3.2:3b",
+        llm_provider="ollama"
     )
 
     chain = rag_chain.create_basic_chain()
@@ -171,81 +165,7 @@ def example_save_and_load() -> None:
     print("\n✓ Example completed!")
 
 
-def example_with_openai_embeddings() -> None:
-    """
-    Example 3: Using OpenAI embeddings for higher quality (still requires OpenAI key for embeddings).
-    """
-    print("\n" + "=" * 60)
-    print("Example 3: OpenAI Embeddings (Higher Quality)")
-    print("=" * 60)
 
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not groq_api_key:
-        print("⚠️  Please set GROQ_API_KEY environment variable")
-        return
-    if not openai_api_key:
-        print("⚠️  Please set OPENAI_API_KEY environment variable for embeddings")
-        return
-
-    # Create sample document
-    sample_doc = "sample_doc_3.txt"
-    with open(sample_doc, "w") as f:
-        f.write("""
-        Machine Learning Concepts
-
-        Neural networks are computational models inspired by biological neurons.
-        They consist of layers: input layer, hidden layers, and output layer.
-
-        Backpropagation is the key algorithm for training neural networks.
-        It calculates gradients using the chain rule from calculus.
-
-        Overfitting occurs when a model learns training data too well,
-        including noise and outliers. Regularization techniques help prevent this.
-        """)
-
-    print("\n📄 Processing document...")
-    processor = DocumentProcessor()
-    chunks = processor.process_document(sample_doc)
-
-    # Use OpenAI embeddings
-    print("\n🔧 Creating vector store with OpenAI embeddings...")
-    vector_manager = VectorStoreManager(
-        embedding_type="openai",
-        openai_api_key=openai_api_key,
-        model_name="text-embedding-3-small"
-    )
-    vector_manager.create_vector_store(chunks)
-
-    # Create chatbot
-    retriever = vector_manager.get_retriever(k=2)
-    rag_chain = RAGChain(
-        retriever=retriever,
-        groq_api_key=groq_api_key,
-        model_name="llama-3.1-8b-instant",
-        temperature=0.2
-    )
-
-    chain = rag_chain.create_conversational_chain(memory_type="window", window_size=3)
-    chatbot = RAGChatbot(chain, return_sources=True)
-
-    # Multi-turn conversation
-    print("\n💬 Multi-turn conversation:")
-    questions = [
-        "What is backpropagation?",
-        "How does it relate to neural networks?",
-        "What's the solution to overfitting?"
-    ]
-
-    for i, question in enumerate(questions, 1):
-        print(f"\n🔄 Turn {i}")
-        print(f"❓ Q: {question}")
-        response = chatbot.ask(question)
-        print(f"🤖 A: {response['answer']}")
-
-    # Cleanup
-    os.unlink(sample_doc)
-    print("\n✓ Example completed!")
 
 
 def main() -> None:
@@ -261,18 +181,8 @@ def main() -> None:
     print("2. Saving and loading vector stores")
     print("3. Using OpenAI embeddings for higher quality")
 
-    # Check for API key
-    if not os.getenv("GROQ_API_KEY"):
-        print("\n⚠️  Warning: GROQ_API_KEY not found in environment")
-        print("Please set it with: export GROQ_API_KEY='your-key-here'")
-        print("Or create a .env file with GROQ_API_KEY=your-key-here")
-        return
-
-    # Run examples
-    try:
         example_basic_usage()
         example_save_and_load()
-        example_with_openai_embeddings()
 
         print("\n" + "=" * 60)
         print("All examples completed successfully! 🎉")

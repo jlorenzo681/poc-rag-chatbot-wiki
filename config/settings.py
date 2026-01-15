@@ -20,7 +20,7 @@ VECTOR_STORES_DIR: Path = DATA_DIR / "vector_stores"
 LOGS_DIR: Path = PROJECT_ROOT / "logs"
 
 # API Keys
-OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+# OPENAI_API_KEY removed
 
 # Document Processing Settings
 DEFAULT_CHUNK_SIZE: int = 1000

@@ -445,7 +445,7 @@ def main() -> None:
             - **Conversational Memory**: Multi-turn conversations
             - **Source Citations**: See where answers come from
             - **Multiple Formats**: PDF, TXT, Markdown support
-            - **Flexible Models**: Groq LLMs with local/cloud embeddings
+            - **Flexible Models**: Use local LLMs via Ollama or LM Studio
             """)
 
     else:

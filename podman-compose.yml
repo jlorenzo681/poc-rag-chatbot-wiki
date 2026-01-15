@@ -8,9 +8,9 @@ services:
     ports:
       - "8501:8501"
     environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+
 
       - OLLAMA_HOST=http://ollama:11434
       - REDIS_URL=redis://redis:6379/0
@@ -56,8 +56,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+
     ports:
       - "8000:8000"
     depends_on:
@@ -83,8 +82,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+
     depends_on:
       - redis
     networks:

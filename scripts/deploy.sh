@@ -43,18 +43,11 @@ if [ ! -f .env ]; then
     echo -e "${RED}Error: .env file not found!${NC}"
     echo "Please create .env file with your API keys:"
     echo "  cp .env.example .env"
-    echo "  # Edit .env and add your GROQ_API_KEY"
     exit 1
 fi
 
 # Source environment variables
 export $(cat .env | grep -v '^#' | xargs)
-
-# Check for required API key
-if [ -z "$GROQ_API_KEY" ]; then
-    echo -e "${RED}Error: GROQ_API_KEY not set in .env file${NC}"
-    exit 1
-fi
 
 # Check if Podman is installed
 if ! command -v podman &> /dev/null; then
