@@ -8,17 +8,10 @@ from langchain.schema import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 import os
 import hashlib
 from .event_bus import EventBus, VectorStoreUpdateEvent
-
-# Optional: OpenAI embeddings (requires langchain-openai package)
-try:
-    from langchain_openai import OpenAIEmbeddings
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
 
 
 class VectorStoreManager:
@@ -28,8 +21,6 @@ class VectorStoreManager:
 
     def __init__(
         self,
-        embedding_type: Literal["openai", "huggingface"] = "huggingface",
-        openai_api_key: Optional[str] = None,
         model_name: Optional[str] = None,
         event_bus: Optional[EventBus] = None
     ):
@@ -37,63 +28,32 @@ class VectorStoreManager:
         Initialize the vector store manager.
 
         Args:
-            embedding_type: Type of embeddings to use ('openai' or 'huggingface')
-            openai_api_key: OpenAI API key (required if embedding_type='openai')
-            model_name: Name of the embedding model
+            model_name: Name of the embedding model (default: all-MiniLM-L6-v2)
         """
-        self.embedding_type = embedding_type
-        self.embeddings = self._initialize_embeddings(
-            embedding_type,
-            openai_api_key,
-            model_name
-        )
+        self.embeddings = self._initialize_embeddings(model_name)
         self.vector_store = None
         self.event_bus = event_bus
 
     def _initialize_embeddings(
         self,
-        embedding_type: str,
-        api_key: Optional[str],
         model_name: Optional[str]
     ) -> Embeddings:
         """
-        Initialize the embeddings model.
+        Initialize the embeddings model (Enforced to HuggingFace).
 
         Args:
-            embedding_type: Type of embeddings ('openai' or 'huggingface')
-            api_key: API key for OpenAI
             model_name: Name of the model
 
         Returns:
             Embeddings instance
         """
-        if embedding_type == "openai":
-            if not OPENAI_AVAILABLE:
-                raise ImportError(
-                    "OpenAI embeddings requested but langchain-openai is not installed. "
-                    "Install it with: pip install langchain-openai"
-                )
-            if not api_key:
-                raise ValueError("OpenAI API key is required for OpenAI embeddings")
-
-            model = model_name or "text-embedding-3-small"
-            print(f"🔧 Initializing OpenAI embeddings (model: {model})")
-            return OpenAIEmbeddings(
-                model=model,
-                openai_api_key=api_key
-            )
-
-        elif embedding_type == "huggingface":
-            model = model_name or "all-MiniLM-L6-v2"
-            print(f"🔧 Initializing HuggingFace embeddings (model: {model})")
-            return HuggingFaceEmbeddings(
-                model_name=model,
-                model_kwargs={},
-                encode_kwargs={'normalize_embeddings': True}
-            )
-
-        else:
-            raise ValueError(f"Unsupported embedding type: {embedding_type}")
+        model = model_name or "all-MiniLM-L6-v2"
+        print(f"🔧 Initializing HuggingFace embeddings (model: {model})")
+        return HuggingFaceEmbeddings(
+            model_name=model,
+            model_kwargs={},
+            encode_kwargs={'normalize_embeddings': True}
+        )
 
     def get_file_hash(self, file_path: str) -> str:
         """
@@ -263,5 +223,4 @@ if __name__ == "__main__":
     # Example usage
     print("Vector Store Manager initialized successfully!")
     print("\nSupported embedding types:")
-    print("  - openai: text-embedding-3-small (default)")
     print("  - huggingface: all-MiniLM-L6-v2 (default, free)")

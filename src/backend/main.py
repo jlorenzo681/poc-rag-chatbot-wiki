@@ -36,7 +36,7 @@ def sanitize_filename(filename: str) -> str:
 async def upload_document(
     file: UploadFile = File(...),
     api_key: str = Form(""),
-    embedding_type: str = Form("HuggingFace (Free)")
+    embedding_type: str = Form("huggingface")
 ):
     try:
         filename = sanitize_filename(file.filename)

@@ -5,7 +5,6 @@ Implements the retrieval-augmented generation chain with conversation memory.
 
 from typing import Optional, Dict, Any, Literal, List
 from langchain.schema import Document
-from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
@@ -38,8 +37,7 @@ Context: {context}"""
     def __init__(
         self,
         retriever,
-        llm_provider: Literal["groq", "ollama", "lmstudio"] = "groq",
-        groq_api_key: Optional[str] = None,
+        llm_provider: Literal["ollama", "lmstudio"] = "ollama",
         ollama_base_url: str = "http://ollama:11434",
         lmstudio_base_url: str = "http://localhost:1234/v1",
         model_name: str = "llama-3.1-8b-instant",
@@ -52,8 +50,7 @@ Context: {context}"""
 
         Args:
             retriever: Vector store retriever
-            llm_provider: LLM provider to use ('groq', 'ollama', or 'lmstudio')
-            groq_api_key: Groq API key (required if llm_provider='groq')
+            llm_provider: LLM provider to use ('ollama', or 'lmstudio')
             ollama_base_url: Ollama server URL (used if llm_provider='ollama')
             lmstudio_base_url: LM Studio server URL (used if llm_provider='lmstudio')
             model_name: Name of the LLM model
@@ -66,21 +63,7 @@ Context: {context}"""
         self.llm_provider = llm_provider
 
         # Initialize LLM based on provider
-        if llm_provider == "groq":
-            if not groq_api_key:
-                raise ValueError("groq_api_key is required when using Groq provider")
-
-            self.llm = ChatGroq(
-                groq_api_key=groq_api_key,
-                model_name=model_name,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                timeout=60.0,
-                max_retries=2
-            )
-            print(f"🤖 Initialized Groq LLM: {model_name}")
-
-        elif llm_provider == "ollama":
+        if llm_provider == "ollama":
             self.llm = ChatOllama(
                 base_url=ollama_base_url,
                 model=model_name,

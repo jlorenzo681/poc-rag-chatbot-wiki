@@ -13,17 +13,12 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
         
         # 1. Initialize Vector Manager
         # Note: We pass None for event_bus to avoid overhead, relying on Celery state for feedback
-        if embedding_type == "OpenAI":
-            vector_manager = VectorStoreManager(
-                embedding_type="openai",
-                openai_api_key=api_key,
-                model_name="text-embedding-3-small"
-            )
-        else:
-            vector_manager = VectorStoreManager(
-                embedding_type="huggingface", 
-                model_name="all-MiniLM-L6-v2"
-            )
+        # 1. Initialize Vector Manager
+        # Note: We pass None for event_bus to avoid overhead, relying on Celery state for feedback
+        # Enforcing local embeddings
+        vector_manager = VectorStoreManager(
+            model_name="all-MiniLM-L6-v2"
+        )
 
         # 2. Check Cache
         self.update_state(state='PROGRESS', meta={'status': 'Checking cache...'})

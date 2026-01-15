@@ -87,18 +87,19 @@ def initialize_session_state() -> None:
 
 
 
-def process_document(uploaded_file, api_key: str, embedding_type: str) -> tuple[bool, Optional[str]]:
+def process_document(uploaded_file, api_key: str) -> tuple[bool, Optional[str]]:
     """
     Process uploaded document via Backend API.
     
     Args:
         uploaded_file: Streamlit file object
         api_key: API key
-        embedding_type: Embedding type
         
     Returns:
         Tuple (Success, File Hash)
     """
+    # Hardcoded to local embeddings
+    embedding_type = "huggingface"
     files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
     data = {"api_key": api_key, "embedding_type": embedding_type}
     
@@ -142,19 +143,10 @@ def process_document(uploaded_file, api_key: str, embedding_type: str) -> tuple[
             # 3. Load Vector Store Locally (Read-Only)
             # We need to initialize the manager to access the cached store
             with st.spinner("📦 Loading vector store..."):
-                if embedding_type == "OpenAI":
-                    vector_manager = VectorStoreManager(
-                        embedding_type="openai",
-                        openai_api_key=api_key,
-                        model_name="text-embedding-3-small",
-                        event_bus=st.session_state.event_bus
-                    )
-                else: 
-                    vector_manager = VectorStoreManager(
-                        embedding_type="huggingface", 
-                        model_name="all-MiniLM-L6-v2",
-                        event_bus=st.session_state.event_bus
-                    )
+                vector_manager = VectorStoreManager(
+                    model_name="all-MiniLM-L6-v2",
+                    event_bus=st.session_state.event_bus
+                )
                 
                 cache_path = f"data/vector_stores/{file_hash}"
                 vector_manager.load_vector_store(cache_path)
@@ -172,11 +164,10 @@ def process_document(uploaded_file, api_key: str, embedding_type: str) -> tuple[
         return False, None
 
 
-LLMProvider = Literal["Groq", "Ollama", "LM Studio"]
-LLMProviderLower = Literal["groq", "ollama", "lmstudio"]
+LLMProvider = Literal["Ollama", "LM Studio"]
+LLMProviderLower = Literal["ollama", "lmstudio"]
 
 PROVIDER_MAP: dict[LLMProvider, LLMProviderLower] = {
-    "Groq": "groq",
     "Ollama": "ollama",
     "LM Studio": "lmstudio",
 }
@@ -212,7 +203,6 @@ def initialize_chatbot(
             rag_chain = RAGChain(
                 retriever=retriever,
                 llm_provider=provider_lower,
-                groq_api_key=groq_api_key if provider_lower == "groq" else None,
                 ollama_base_url=ollama_url,
                 lmstudio_base_url=lmstudio_url,
                 model_name=model_name,
@@ -287,8 +277,8 @@ def main() -> None:
         st.subheader("LLM Provider")
         llm_provider = st.radio(
             "Choose Provider",
-            ["Groq", "Ollama", "LM Studio"],
-            help="Groq: Cloud API (fast), Ollama: Local (containerized), LM Studio: Local (GPU accelerated)",
+            ["Ollama", "LM Studio"],
+            help="Ollama: Local (containerized), LM Studio: Local (GPU accelerated)",
         )
 
         st.divider()
@@ -297,22 +287,7 @@ def main() -> None:
         ollama_url = ""
         lmstudio_url = ""
 
-        if llm_provider == "Groq":
-            env_api_key = os.getenv("GROQ_API_KEY", "")
-            if env_api_key:
-                api_key = env_api_key
-                st.success("✓ Using GROQ_API_KEY from environment")
-            else:
-                api_key = st.text_input(
-                    "Groq API Key", type="password", help="Enter your Groq API key"
-                )
-
-            model_name = st.selectbox(
-                "Model",
-                ["llama-3.1-8b-instant", "mixtral-8x7b-32768"],
-                help="Select the Groq model to use",
-            )
-        elif llm_provider == "Ollama":
+        if llm_provider == "Ollama":
             ollama_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
             st.text_input(
                 "Ollama Server URL",
@@ -349,14 +324,7 @@ def main() -> None:
 
         st.divider()
 
-        # Embedding options
-        st.subheader("Embeddings")
-        embedding_type = st.radio(
-            "Embedding Model",
-            ["HuggingFace (Free)", "OpenAI"],
-            index=0,
-            help="HuggingFace runs locally, OpenAI requires API key",
-        )
+
 
         st.divider()
 
@@ -402,8 +370,7 @@ def main() -> None:
 
         # Process button
         can_process = uploaded_file and (
-            (llm_provider == "Groq" and api_key)
-            or llm_provider == "Ollama"
+            llm_provider == "Ollama"
             or (llm_provider == "LM Studio" and lmstudio_url)
         )
 
@@ -415,14 +382,14 @@ def main() -> None:
             ):
                 # Process document via API (No local save needed here, API handles it)
                 success, file_hash = process_document(
-                    uploaded_file, api_key if llm_provider == "Groq" else "", embedding_type
+                    uploaded_file, ""
                 )
 
                 if success:
                     # Initialize chatbot
                     initialize_chatbot(
                         llm_provider,
-                        api_key,
+                        "",
                         ollama_url,
                         lmstudio_url,
                         model_name,
@@ -432,8 +399,6 @@ def main() -> None:
 
                     # Note: File is kept in data/documents/ directory for reference
 
-        elif uploaded_file and llm_provider == "Groq" and not api_key:
-            st.warning("⚠️ Please enter your Groq API key")
         elif uploaded_file and llm_provider == "LM Studio" and not lmstudio_url:
             st.warning("⚠️ Please enter the LM Studio server URL")
 
@@ -451,10 +416,9 @@ def main() -> None:
         # Info section
         st.divider()
         st.caption("💡 **How to use:**")
-        st.caption("1. Enter your Groq API key")
-        st.caption("2. Upload a document")
-        st.caption("3. Click 'Process Document'")
-        st.caption("4. Start asking questions!")
+        st.caption("1. Upload a document")
+        st.caption("2. Click 'Process Document'")
+        st.caption("3. Start asking questions!")
 
     # Main chat interface
     if not st.session_state.document_processed:
