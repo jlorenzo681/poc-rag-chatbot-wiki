@@ -6,7 +6,7 @@ Handles loading and chunking of various document types for RAG system.
 from typing import List, Optional
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, WebBaseLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.schema import Document
+from langchain_core.documents import Document
 import os
 import time
 from .event_bus import EventBus, ProcessingStartEvent, ProcessingCompleteEvent

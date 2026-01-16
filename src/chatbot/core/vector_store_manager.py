@@ -4,7 +4,7 @@ Handles embeddings generation and vector store operations.
 """
 
 from typing import List, Optional, Literal, Any
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_community.vectorstores import FAISS

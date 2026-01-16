@@ -1,1 +1,13 @@
 fasttext-wheel>=0.9.2
+neo4j>=5.20.0
+langchain-experimental>=0.0.60
+langchain==0.2.16
+langchain-core==0.2.38
+langchain-community==0.2.16
+langchain-experimental>=0.0.10
+neo4j
+langchain-huggingface>=0.0.3
+langchain-ollama>=0.1.0
+fasttext-wheel
+langchain-openai>=0.1.0
+json-repair

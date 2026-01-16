@@ -34,8 +34,14 @@ EMBEDDING_MODEL_EN: str = "nomic-embed-text" # High quality English model (Ollam
 EMBEDDING_MODEL_MULTILINGUAL: str = "bge-m3"   # High quality Multilingual model (Ollama)
 FASTTEXT_MODEL_PATH: str = "data/models/lid.176.ftz"
 
+# GraphRAG Settings
+ENABLE_GRAPHRAG: bool = True
+NEO4J_URI: str = "bolt://neo4j:7687"
+NEO4J_USERNAME: str = "neo4j"
+NEO4J_PASSWORD: str = "password"
+
 # LLM Settings
-DEFAULT_LLM_MODEL: str = "llama3.1"
+DEFAULT_LLM_MODEL: str = "llama3.2:1b"
 DEFAULT_TEMPERATURE: float = 0.3
 DEFAULT_MAX_TOKENS: int = 500
 

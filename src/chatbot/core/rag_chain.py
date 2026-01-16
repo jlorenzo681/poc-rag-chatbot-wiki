@@ -4,7 +4,7 @@ Implements the retrieval-augmented generation chain with conversation memory.
 """
 
 from typing import Optional, Dict, Any, Literal, List
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
@@ -14,7 +14,34 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 import time
+import time
 from .event_bus import EventBus, ChatQueryEvent, ChatResponseEvent, ErrorEvent
+from .graph_store_manager import GraphStoreManager
+import config.settings as settings
+from langchain_core.retrievers import BaseRetriever
+
+class HybridRetriever(BaseRetriever):
+    """
+    Combines Vector Search with Graph Search.
+    """
+    vector_retriever: Any
+    graph_manager: Any
+    
+    def _get_relevant_documents(self, query: str, *, run_manager=None) -> List[Document]:
+        # Get vector docs
+        docs = self.vector_retriever.invoke(query)
+        
+        # Get graph context
+        if getattr(settings, "ENABLE_GRAPHRAG", False):
+            # We pass a simple callback or use internal LLM if needed
+            graph_text = self.graph_manager.query_graph(query)
+            if graph_text and "I don't know" not in graph_text:
+                docs.append(Document(
+                    page_content=f"Graph Knowledge Context:\n{graph_text}", 
+                    metadata={"source": "graph-db", "type": "graph_context"}
+                ))
+            
+        return docs
 
 
 class RAGChain:
@@ -58,7 +85,16 @@ Context: {context}"""
             max_tokens: Maximum tokens in response
             system_prompt: Custom system prompt
         """
-        self.retriever = retriever
+        if getattr(settings, "ENABLE_GRAPHRAG", False):
+            print("🕸️ Enabling Hybrid RAG (Vector + Graph)")
+            self.graph_manager = GraphStoreManager()
+            self.retriever = HybridRetriever(
+                vector_retriever=retriever,
+                graph_manager=self.graph_manager
+            )
+        else:
+            self.retriever = retriever
+
         self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
         self.llm_provider = llm_provider
 

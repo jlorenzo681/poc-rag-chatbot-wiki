@@ -1,7 +1,9 @@
 from .celery_config import celery_app
 from src.chatbot.core.document_processor import DocumentProcessor
 from src.chatbot.core.vector_store_manager import VectorStoreManager
+from src.chatbot.core.graph_store_manager import GraphStoreManager
 import os
+import config.settings as settings
 
 @celery_app.task(bind=True)
 def process_document_task(self, file_path: str, api_key: str, embedding_type: str):
@@ -11,23 +13,21 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
     try:
         self.update_state(state='PROGRESS', meta={'status': 'Initializing...'})
         
-        # 1. Initialize Vector Manager
-        # Note: We pass None for event_bus to avoid overhead, relying on Celery state for feedback
-        # 1. Initialize Vector Manager
-        # Note: We pass None for event_bus to avoid overhead, relying on Celery state for feedback
-        # Enforcing local embeddings
-        vector_manager = VectorStoreManager(
-            model_name="all-MiniLM-L6-v2"
-        )
+        # 1. Initialize Managers
+        # Note: We pass None for event_bus to avoid overhead
+        vector_manager = VectorStoreManager()
+        graph_manager = GraphStoreManager()
 
         # 2. Check Cache
         self.update_state(state='PROGRESS', meta={'status': 'Checking cache...'})
         file_hash = vector_manager.get_file_hash(file_path)
-        cache_path = f"data/vector_stores/{file_hash}"
+        cache_path = f"data/vector_stores/{file_hash}" # Note: VSM now appends language suffix, but check depends on VSM implementation
         
-        if os.path.exists(cache_path):
-            return {"status": "cached", "file_hash": file_hash, "message": "Loaded from cache"}
-
+        # NOTE: With dynamic embeddings, the cache path logic in VSM is internal. 
+        # We should probably trust VSM or just proceed to process.
+        # For graph, we don't have a simple file-based cache check yet (Neo4j deduplication).
+        # To simplify, we proceed if we want to ensure graph is updated, or check vector store existence as proxy.
+        
         # 3. Process
         self.update_state(state='PROGRESS', meta={'status': 'Chunking document...'})
         processor = DocumentProcessor(chunk_size=1000, chunk_overlap=200)
@@ -35,7 +35,13 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
         
         # 4. Create Vector Store
         self.update_state(state='PROGRESS', meta={'status': f'Embedding {len(chunks)} chunks...'})
+        # This will create/cache the vector store (VSM handles language detection internally)
         vector_manager.create_vector_store(chunks, cache_key=file_hash)
+        
+        # 5. Graph Extraction (if enabled)
+        if getattr(settings, "ENABLE_GRAPHRAG", False):
+            self.update_state(state='PROGRESS', meta={'status': f'Extracting Graph data (this may take a while)...'})
+            graph_manager.add_documents_to_graph(chunks)
         
         return {
             "status": "completed", 
