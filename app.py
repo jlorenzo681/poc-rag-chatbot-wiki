@@ -70,6 +70,10 @@ def initialize_session_state() -> None:
         st.session_state.document_processed = False
     if "last_uploaded_filename" not in st.session_state:
         st.session_state.last_uploaded_filename = None
+    if "last_model_name" not in st.session_state:
+        st.session_state.last_model_name = None
+    if "last_llm_provider" not in st.session_state:
+        st.session_state.last_llm_provider = None
     
     if "event_bus" not in st.session_state:
         st.session_state.event_bus = EventBus()
@@ -78,10 +82,8 @@ def initialize_session_state() -> None:
             print(f"🔔 EVENT: {type(event).__name__}: {event}")
             
         st.session_state.event_bus.subscribe(Event, log_event)
-        st.session_state.event_bus.subscribe(DocumentUploadEvent, log_event)
-        st.session_state.event_bus.subscribe(ProcessingCompleteEvent, log_event)
-        st.session_state.event_bus.subscribe(ChatResponseEvent, log_event)
-        st.session_state.event_bus.subscribe(ErrorEvent, log_event)
+        # Removed specific subscriptions because they inherit from Event 
+        # and checking isinstance(event, Event) in publish() triggers them all.
 
 
 
@@ -276,8 +278,8 @@ def main() -> None:
         st.subheader("LLM Provider")
         llm_provider = st.radio(
             "Choose Provider",
-            ["Ollama", "LM Studio"],
-            help="Ollama: Local (containerized), LM Studio: Local (GPU accelerated)",
+            ["LM Studio", "Ollama"],
+            help="LM Studio: Local (GPU accelerated), Ollama: Local (containerized)",
         )
 
         st.divider()
@@ -314,11 +316,33 @@ def main() -> None:
                 help="LM Studio server URL (default: http://host.docker.internal:1234/v1)",
             )
 
-            model_name = st.text_input(
-                "Model Name",
-                value="local-model",
-                help="Enter the model name loaded in LM Studio (or use 'local-model')",
-            )
+            # Dynamic Model Fetching
+            available_models = []
+            if lmstudio_url:
+                try:
+                    # LM Studio API is OpenAI compatible
+                    import requests
+                    models_url = f"{lmstudio_url.rstrip('/')}/models"
+                    response = requests.get(models_url, timeout=2)
+                    if response.status_code == 200:
+                        data = response.json()
+                        available_models = [m["id"] for m in data.get("data", [])]
+                except Exception:
+                    pass
+
+            if available_models:
+                model_name = st.selectbox(
+                    "Model Name",
+                    available_models,
+                    help="Select a model loaded in LM Studio"
+                )
+            else:
+                st.info("💡 Start LM Studio server to see models here.")
+                model_name = st.text_input(
+                    "Model Name",
+                    value="local-model",
+                    help="Enter the model name manually if fetching failed",
+                )
             api_key = ""
 
         st.divider()
@@ -348,6 +372,29 @@ def main() -> None:
             type=["pdf", "txt", "md"],
             help="Upload a document to create a knowledge base",
         )
+
+        # Check for configuration changes (Hot-Swap)
+        if st.session_state.document_processed and st.session_state.chatbot is not None:
+            # Check if relevant settings changed
+            config_changed = (
+                model_name != st.session_state.last_model_name or 
+                llm_provider != st.session_state.last_llm_provider
+            )
+            
+            if config_changed:
+                st.info(f"🔄 Switching to {model_name} ({llm_provider})...")
+                initialize_chatbot(
+                    llm_provider=llm_provider,
+                    groq_api_key=api_key,
+                    ollama_url=ollama_url,
+                    lmstudio_url=lmstudio_url,
+                    model_name=model_name,
+                    temperature=temperature
+                )
+                # Update tracking
+                st.session_state.last_model_name = model_name
+                st.session_state.last_llm_provider = llm_provider
+                st.rerun()
 
         # Check if file has changed
         if uploaded_file:
@@ -395,6 +442,8 @@ def main() -> None:
                         temperature,
                     )
                     st.session_state.document_processed = True
+                    st.session_state.last_model_name = model_name
+                    st.session_state.last_llm_provider = llm_provider
 
                     # Note: File is kept in data/documents/ directory for reference
 

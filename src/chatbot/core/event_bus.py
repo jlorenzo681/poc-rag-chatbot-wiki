@@ -83,22 +83,13 @@ class EventBus:
     """
     Hybrid Event Bus connecting in-memory synchronous events with Redis Pub/Sub.
     """
-    _instance = None
     _redis_enabled = False
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(EventBus, cls).__new__(cls)
-            cls._instance.subscribers = {}
-            cls._instance.redis_client = None
-            cls._instance.pubsub = None
-            cls._instance._init_redis()
-        return cls._instance
-
     def __init__(self):
-        # Initialize only if subscribers doesn't exist (to handle singleton nature safely)
-        if not hasattr(self, 'subscribers'):
-            self.subscribers: Dict[Type[Event], List[Callable[[Event], None]]] = {}
+        self.subscribers: Dict[Type[Event], List[Callable[[Event], None]]] = {}
+        self.redis_client = None
+        self.pubsub = None
+        self._init_redis()
 
     def _init_redis(self):
         """Initialize Redis connection if REDIS_URL is set."""
