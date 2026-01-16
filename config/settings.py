@@ -27,11 +27,15 @@ DEFAULT_CHUNK_SIZE: int = 1000
 DEFAULT_CHUNK_OVERLAP: int = 200
 
 # Embedding Settings
-DEFAULT_EMBEDDING_TYPE: str = "huggingface"
-HUGGINGFACE_MODEL: str = "all-MiniLM-L6-v2"
+DEFAULT_EMBEDDING_TYPE: str = "ollama"  # Changed from huggingface to ollama
+
+# Dynamic Embedding Models
+EMBEDDING_MODEL_EN: str = "nomic-embed-text" # High quality English model (Ollama)
+EMBEDDING_MODEL_MULTILINGUAL: str = "bge-m3"   # High quality Multilingual model (Ollama)
+FASTTEXT_MODEL_PATH: str = "data/models/lid.176.ftz"
 
 # LLM Settings
-DEFAULT_LLM_MODEL: str = "llama-3.1-8b-instant8"
+DEFAULT_LLM_MODEL: str = "llama3.1"
 DEFAULT_TEMPERATURE: float = 0.3
 DEFAULT_MAX_TOKENS: int = 500
 
