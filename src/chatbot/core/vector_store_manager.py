@@ -169,13 +169,36 @@ class VectorStoreManager:
         For dynamic loading, create_vector_store handles the flow better.
         """
         if not os.path.exists(path):
-            raise FileNotFoundError(f"Vector store not found at: {path}")
+            # Try to find a directory with language suffix
+            parent_dir = os.path.dirname(path)
+            base_name = os.path.basename(path)
+            
+            if os.path.exists(parent_dir):
+                candidates = [
+                    d for d in os.listdir(parent_dir) 
+                    if d.startswith(base_name + "_")
+                ]
+                if candidates:
+                    # Use the first match (usually just one language per file)
+                    new_path = os.path.join(parent_dir, candidates[0])
+                    print(f"ℹ️ Found suffixed vector store at: {new_path}")
+                    path = new_path
+                    
+                    # Infer language from suffix to select correct embedding model
+                    suffix = candidates[0].split('_')[-1]
+                    if suffix in ['en', 'es', 'fr', 'de']: # List of likely codes
+                        print(f"ℹ️ Inferred language '{suffix}' from directory name.")
+                        self.embeddings = self._get_embeddings_for_language(suffix)
+                else:
+                    raise FileNotFoundError(f"Vector store not found at: {path}")
+            else:
+                raise FileNotFoundError(f"Vector store not found at: {path}")
 
         # If embeddings not set (e.g. manual load), default to English or Multilingual?
         # Ideally, we should detect or store metadata. For now, if not set, default to Multilingual as safest.
         if not hasattr(self, 'embeddings') or self.embeddings is None:
              print("⚠ Embeddings not initialized, defaulting to Multilingual for load.")
-             self.embeddings = self._get_embeddings_for_language('es') # Fallback
+             self.embeddings = self._get_embeddings_for_language("es") # Fallback
 
         print(f"📂 Loading vector store from: {path}")
         self.vector_store = FAISS.load_local(

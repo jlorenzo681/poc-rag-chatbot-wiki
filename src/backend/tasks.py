@@ -39,9 +39,25 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
         vector_manager.create_vector_store(chunks, cache_key=file_hash)
         
         # 5. Graph Extraction (if enabled)
+        # 5. Graph Extraction (if enabled)
         if getattr(settings, "ENABLE_GRAPHRAG", False):
-            self.update_state(state='PROGRESS', meta={'status': f'Extracting Graph data (this may take a while)...'})
-            graph_manager.add_documents_to_graph(chunks)
+            # Check if graph is already processed for this file
+            # We use a simple marker file in the vector stores directory
+            graph_marker_path = f"data/vector_stores/{file_hash}_graph.done"
+            
+            if os.path.exists(graph_marker_path):
+                 self.update_state(state='PROGRESS', meta={'status': 'Graph data already cached. Skipping extraction.'})
+                 print(f"✓ Graph marker found at {graph_marker_path}. Skipping extraction.")
+            else:
+                self.update_state(state='PROGRESS', meta={'status': f'Extracting Graph data (this may take a while)...'})
+                graph_manager.add_documents_to_graph(chunks)
+                # Create marker file upon success
+                try:
+                    with open(graph_marker_path, "w") as f:
+                        f.write("done")
+                    print(f"✓ Created graph marker at {graph_marker_path}")
+                except Exception as e:
+                    print(f"❌ Failed to create graph marker: {e}")
         
         return {
             "status": "completed", 

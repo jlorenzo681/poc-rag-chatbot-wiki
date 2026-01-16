@@ -12,9 +12,8 @@ services:
       - "8501:8501"
     environment:
 
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-
-      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_HOST=http://host.docker.internal:11434
       - REDIS_URL=redis://redis:6379/0
     volumes:
       # Persistent data volumes
@@ -38,8 +37,7 @@ services:
     networks:
       - rag-network
     depends_on:
-
-      - ollama
+      # - ollama # Running locally now
       - redis
       - backend
 
@@ -58,14 +56,14 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_HOST=http://host.docker.internal:11434
 
     ports:
       - "8000:8000"
     depends_on:
       - redis
-      - ollama
+      # - ollama
     networks:
       - rag-network
 
@@ -85,8 +83,8 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
-      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_HOST=http://host.docker.internal:11434
 
     depends_on:
       - redis
@@ -104,22 +102,22 @@ services:
     volumes:
       - redis-data:/data
 
-  ollama:
-    image: docker.io/ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    restart: unless-stopped
-    networks:
-      - rag-network
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+  # ollama:
+  #   image: docker.io/ollama/ollama:latest
+  #   container_name: ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama-data:/root/.ollama
+  #   restart: unless-stopped
+  #   networks:
+  #     - rag-network
+  #   healthcheck:
+  #     test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 10s
 
   neo4j:
     image: docker.io/library/neo4j:5.11
