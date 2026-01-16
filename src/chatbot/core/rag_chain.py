@@ -67,7 +67,7 @@ Context: {context}"""
         llm_provider: Literal["ollama", "lmstudio"] = "ollama",
         ollama_base_url: str = "http://ollama:11434",
         lmstudio_base_url: str = "http://localhost:1234/v1",
-        model_name: str = "llama-3.1-8b-instant",
+        model_name: str = "llama3.2:3b",
         temperature: float = 0.3,
         max_tokens: int = 500,
         system_prompt: Optional[str] = None

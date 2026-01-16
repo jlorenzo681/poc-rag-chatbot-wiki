@@ -15,12 +15,12 @@ Deploy the RAG Chatbot with both rag-chatbot and Ollama services using podman-co
 ./scripts/deploy.sh --pull-models
 
 # Deploy and pull a specific model
-./scripts/deploy.sh --pull-model llama3.1:8b
+./scripts/deploy.sh --pull-model llama3.2:3b
 ```
 
 **Options:**
 - `--pull-models` - Pull all available Ollama models after deployment
-- `--pull-model MODEL` - Pull a specific Ollama model (e.g., llama3.1:8b)
+- `--pull-model MODEL` - Pull a specific Ollama model (e.g., llama3.2:3b)
 
 ### `dev.sh`
 Start development mode with hot reload for code changes while using compose for Ollama.
@@ -33,7 +33,7 @@ Start development mode with hot reload for code changes while using compose for 
 ./scripts/dev.sh --pull-models
 
 # Dev mode with specific model
-./scripts/dev.sh --pull-model llama3.1:8b
+./scripts/dev.sh --pull-model llama3.2:3b
 ```
 
 **Features:**
@@ -53,15 +53,15 @@ Pull Ollama models that are available in the app's model selector.
 ./scripts/pull-ollama-models.sh --all
 
 # Pull specific models
-./scripts/pull-ollama-models.sh llama3.1:8b mistral:latest
+./scripts/pull-ollama-models.sh llama3.2:3b mistral:latest
 
 # Pull single model
-./scripts/pull-ollama-models.sh llama3.1:8b
+./scripts/pull-ollama-models.sh llama3.2:3b
 ```
 
 **Available Models:**
 - `deepseek-r1:8b` (~5.2 GB)
-- `llama3.1:8b` (~4.9 GB)
+- `llama3.2:3b` (~2.0 GB)
 
 **Note:** The Ollama container must be running before pulling models.
 
@@ -124,13 +124,13 @@ Clean up containers, images, volumes, and networks.
    # Edit .env and add your GROQ_API_KEY
 
    # Deploy and pull default model
-   ./scripts/deploy.sh --pull-model llama3.1:8b
+   ./scripts/deploy.sh --pull-model llama3.2:3b
    ```
 
 2. **Development:**
    ```bash
    # Start dev mode with hot reload
-   ./scripts/dev.sh --pull-model llama3.1:8b
+   ./scripts/dev.sh --pull-model llama3.2:3b
    ```
 
 3. **View logs:**
@@ -163,7 +163,7 @@ Both containers are on the same network (`poc-rag-chatbot-wiki_rag-network`) and
 - Restart with compose: `./scripts/stop.sh && ./scripts/deploy.sh`
 
 **Models not found:**
-- Pull models: `./scripts/pull-ollama-models.sh llama3.1:8b`
+- Pull models: `./scripts/pull-ollama-models.sh llama3.2:3b`
 - List models: `podman exec ollama ollama list`
 
 **Network issues:**

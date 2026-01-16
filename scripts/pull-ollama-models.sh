@@ -17,6 +17,9 @@ echo "======================================${NC}"
 # Models available in the app (from app.py line 291)
 MODELS=(
     "llama3.2:3b"
+    "nomic-embed-text"
+    "bge-m3"
+    # "llama3.1" ## RECOMMENDED: use this for production to enable max quality
 )
 
 # Check if ollama container is running

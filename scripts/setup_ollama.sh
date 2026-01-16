@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-MODEL_NAME="llama3.1"
+MODEL_NAME="llama3.2:3b"
 MODEL_TO_REMOVE="mistral"
 
 # Colors for output

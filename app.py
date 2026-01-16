@@ -298,7 +298,7 @@ def main() -> None:
 
             model_name = st.selectbox(
                 "Model",
-                ["llama3.2:3b"],
+                ["llama3.2:3b", "llama3.2:1b"],
                 help="Select the Ollama model (pull it first if needed)",
             )
             api_key = ""

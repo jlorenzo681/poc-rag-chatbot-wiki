@@ -163,7 +163,7 @@ from rag_chain import RAGChain, RAGChatbot
 rag_chain = RAGChain(
     retriever=retriever,
     groq_api_key="your-key",
-    model_name="llama-3.1-8b-instant",
+    model_name="llama3.2:3b",
     temperature=0.3
 )
 

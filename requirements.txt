@@ -322,6 +322,43 @@ fastapi==0.124.2 \
     --hash=sha256:6314385777a507bb19b34bd064829fddaea0eea54436deb632b5de587554055c \
     --hash=sha256:72e188f01f360e2f59da51c8822cbe4bca210c35daaae6321b1b724109101c00
     # via poc-rag-chatbot-wiki
+fasttext-wheel==0.9.2 \
+    --hash=sha256:056e088318ef0e0cc690c4cb18637320eaa3cdb986b62d67bb50d6a7a82e4051 \
+    --hash=sha256:09a25790ad17ee21f31efe39d51e4106c718a1ed9c7ac0bdc1ad7512f2d64d22 \
+    --hash=sha256:0a30b779f3f77eca0d31bb11c074fadbc5ab9e6e4c7cdb3135780a61d63eb3fb \
+    --hash=sha256:0aa4755a3ab0717e32627ede55e9c12cd7bbba464c73af7f08a3142bd6c62df7 \
+    --hash=sha256:0e8a73ee48502dfc6243faf6799dec3067795a6dc02c1d47fedc620e80e9ee94 \
+    --hash=sha256:1afb40118fb1b39e159bbdded14834a6a95415c0be957553647b9d70c7cc45ff \
+    --hash=sha256:1d673dc21be911134142642e5cf3a92537f565156ede0871f3a769108f446163 \
+    --hash=sha256:1ec13d485e0202e729b3bcb7283dda9c499581f691fa8e835e237ee5cf69a2b5 \
+    --hash=sha256:2cce299a49f50b5867fff464d1051beebe1d612b23213bb29b09f96935ca4ca0 \
+    --hash=sha256:2dcbe5cb3ebad68667772ff2457d1d5ced69e9caa19fe35e53fe1b0c68db69f6 \
+    --hash=sha256:39d3201a8e6dabf59c0d8f9a7064d12bb996bca38f5f15e5a678e12fcbd39a35 \
+    --hash=sha256:3b7f0d76e2c2b20a582725dc9c7e3419bb55745ac2842271c2e785047b143ac7 \
+    --hash=sha256:5758d911a4e4539c75e93d58d9feee2c6de96a5addc4f4d7d76ed4e8953a4f35 \
+    --hash=sha256:5c4938600006dd13bb215f105adb971e8f129491e03cc5de5ac53f292cdbc9a6 \
+    --hash=sha256:6ab035ecdf8debd35bf513613abaca714876b799fede8ab32c3841417178c543 \
+    --hash=sha256:6d5d47dacf4930254de1806b19cc603a0daac034477a27329dc7b3a4f4240d4a \
+    --hash=sha256:79bfa9b168c115e3b4eab1f7694a80ca6a9ea96ee5e2e4d737e07f5b61812ae8 \
+    --hash=sha256:8280415f59178879963791da9b51eee23a0faf1230fbc770fe917801b5d8f3f6 \
+    --hash=sha256:8a0cc9e92377d27835a71862c68782e70c9bbd2a666a1a51b2c8261fc9892470 \
+    --hash=sha256:9e09cff3f2002cdef5f046a0969a0bf886d5386c2eb1c15874d90f9a95edb8d0 \
+    --hash=sha256:a0bbeaf364fdae4269648391ce44f3c4d5774ec7bea614b65b7c51254f1697fd \
+    --hash=sha256:a32cc0bee31985c5a15ae2ec4f7d777c84e84294d70969d7382961305b0851cf \
+    --hash=sha256:acb1e336c63fcf46ef8965904c03589d230ebc6a3c4a7f05b0a32a7de85de11a \
+    --hash=sha256:ad1a3e10354cb71cb2e182ce4cb7fa61fd2396fe4e28d52002b8f6a749138e4d \
+    --hash=sha256:aefd4dbecf4c243628a513c3f9f9008a4c94d63f4194cfde6d11975710f04b7c \
+    --hash=sha256:af606b17d47695a17ee87dc5a5c76e29cc957f08bd090cb2441e3815c030a99d \
+    --hash=sha256:b1e6c4aee8dfc5629aba54c0c044eb0c699b3f82ee5f0f1a8edf69c84ffaa1bd \
+    --hash=sha256:c4e9e59778eb3f3a3c99bf3c1257791564fbafab9b80e89345ee0940c20e1648 \
+    --hash=sha256:c7b94290bc5bf1a8f2cf6ca2e84364bca3588525625907323d3a77bc96365915 \
+    --hash=sha256:ca27b054837168dd34b202ef59c903fd713d2307c9d27814ff67bc2d6beeadd2 \
+    --hash=sha256:cc650bd6984ea15207ab09e56f20c2fd09fe90822f4663896185cedb79825d6d \
+    --hash=sha256:dbad8ab4820b08273450a395f76a536044a749227ecac060ba48a1d70426768b \
+    --hash=sha256:e73457b66edd1fb893092c1717102e7e7d184a9413735801a4c39d0299846940 \
+    --hash=sha256:ef5be5e24ad4aab61eb42c30e1a7909464b20958907c23dfe4037ef247755254 \
+    --hash=sha256:f1dba6805073d46495dc700a8e29a5524c87f141a29820664c47207260723e78
+    # via poc-rag-chatbot-wiki
 filelock==3.20.0 \
     --hash=sha256:339b4732ffda5cd79b13f4e2711a31b0365ce445d95d243bb996273d072546a2 \
     --hash=sha256:711e943b4ec6be42e1d4e6690b48dc175c822967466bb31c0c293f34334c13f4
@@ -701,13 +738,16 @@ langchain==0.2.16 \
 langchain-community==0.2.16 \
     --hash=sha256:115e1419c176091d4e00240cb5a38612a249e70f213516b6cacae61a8794a868 \
     --hash=sha256:ab416b793a7aed1fa46ebaffd29993296b02286a99819eabc43be2ea8e41ae78
-    # via poc-rag-chatbot-wiki
+    # via
+    #   langchain-experimental
+    #   poc-rag-chatbot-wiki
 langchain-core==0.2.38 \
     --hash=sha256:8a5729bc7e68b4af089af20eff44fe4e7ca21d0e0c87ec21cef7621981fd1a4a \
     --hash=sha256:eb69dbedd344f2ee1f15bcea6c71a05884b867588fadc42d04632e727c1238f3
     # via
     #   langchain
     #   langchain-community
+    #   langchain-experimental
     #   langchain-huggingface
     #   langchain-ollama
     #   langchain-openai
@@ -715,6 +755,10 @@ langchain-core==0.2.38 \
     #   langgraph
     #   langgraph-checkpoint
     #   poc-rag-chatbot-wiki
+langchain-experimental==0.0.65 \
+    --hash=sha256:2a0f268cfb8c79d43cedf9c4840f70bd8b25934e595311e6690804d0355dd7ee \
+    --hash=sha256:83706df07d8a7e6ec1bda74174add7e4431b5f4a8818e19b65986b94c9c99b25
+    # via poc-rag-chatbot-wiki
 langchain-huggingface==0.0.3 \
     --hash=sha256:0637acf484c47323cf3dcc46745a93467f6955989af9b7c01e2382fe1b630aaf \
     --hash=sha256:d6827adf3c7c8fcc0bca8c43c7e900c3bf68af9a1532a83d4b8ace137e02887e
@@ -1143,6 +1187,10 @@ narwhals==2.13.0 \
     --hash=sha256:9b795523c179ca78204e3be53726da374168f906e38de2ff174c2363baaaf481 \
     --hash=sha256:ee94c97f4cf7cfeebbeca8d274784df8b3d7fd3f955ce418af998d405576fdd9
     # via altair
+neo4j==6.1.0 \
+    --hash=sha256:3bd93941f3a3559af197031157220af9fd71f4f93a311db687bd69ffa417b67d \
+    --hash=sha256:b5dde8c0d8481e7b6ae3733569d990dd3e5befdc5d452f531ad1884ed3500b84
+    # via poc-rag-chatbot-wiki
 networkx==3.4.2 ; python_full_version < '3.11' \
     --hash=sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1 \
     --hash=sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f
@@ -1179,6 +1227,7 @@ numpy==1.26.4 \
     --hash=sha256:ffa75af20b44f8dba823498024771d5ac50620e6915abac414251bd971b4529f
     # via
     #   faiss-cpu
+    #   fasttext-wheel
     #   langchain
     #   langchain-community
     #   pandas
@@ -1612,6 +1661,10 @@ pyarrow==22.0.0 \
     --hash=sha256:f7fe3dbe871294ba70d789be16b6e7e52b418311e166e0e3cba9522f0f437fb1 \
     --hash=sha256:f963ba8c3b0199f9d6b794c90ec77545e05eadc83973897a4523c9e8d84e9340
     # via streamlit
+pybind11==3.0.1 \
+    --hash=sha256:9c0f40056a016da59bab516efb523089139fcc6f2ba7e4930854c61efb932051 \
+    --hash=sha256:aa8f0aa6e0a94d3b64adfc38f560f33f15e589be2175e103c0a33c6bce55ee89
+    # via fasttext-wheel
 pydantic==2.12.5 \
     --hash=sha256:4d351024c75c0f085a9febbb665ce8c0c6ec5d30e903bdb6394b7ede26aebb49 \
     --hash=sha256:e561593fccf61e8a20fc46dfc2dfe075b8be7d0188df33f221ad1f0139180f9d
@@ -1765,7 +1818,9 @@ python-multipart==0.0.20 \
 pytz==2025.2 \
     --hash=sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3 \
     --hash=sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00
-    # via pandas
+    # via
+    #   neo4j
+    #   pandas
 pyyaml==6.0.3 \
     --hash=sha256:00c4bdeba853cc34e7dd471f16b4114f4162dc03e6b7afcc2128711f0eca823c \
     --hash=sha256:02893d100e99e03eda1c8fd5c441d8c60103fd175728e23e431db1b589cf5ab3 \
@@ -2278,6 +2333,10 @@ sentence-transformers==3.0.1 \
     # via
     #   langchain-huggingface
     #   poc-rag-chatbot-wiki
+setuptools==80.9.0 \
+    --hash=sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922 \
+    --hash=sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c
+    # via fasttext-wheel
 six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
     --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81

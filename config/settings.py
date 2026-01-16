@@ -41,7 +41,7 @@ NEO4J_USERNAME: str = "neo4j"
 NEO4J_PASSWORD: str = "password"
 
 # LLM Settings
-DEFAULT_LLM_MODEL: str = "llama3.2:1b"
+DEFAULT_LLM_MODEL: str = "llama3.2:3b"
 DEFAULT_TEMPERATURE: float = 0.3
 DEFAULT_MAX_TOKENS: int = 500
 
