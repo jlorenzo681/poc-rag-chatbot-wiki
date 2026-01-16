@@ -53,8 +53,6 @@ def test_event_flow():
         # Assuming HuggingFace is available as per requirements.
         
         manager = VectorStoreManager(
-            embedding_type="huggingface", 
-            model_name="all-MiniLM-L6-v2",
             event_bus=event_bus
         )
         

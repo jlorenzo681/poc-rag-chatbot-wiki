@@ -27,9 +27,7 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install custom requirements
-COPY custom_requirements.txt .
-RUN pip install --no-cache-dir -r custom_requirements.txt
+
 
 # Create necessary directories
 RUN mkdir -p data/documents data/vector_stores logs /app/.cache/huggingface

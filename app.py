@@ -144,7 +144,6 @@ def process_document(uploaded_file, api_key: str) -> tuple[bool, Optional[str]]:
             # We need to initialize the manager to access the cached store
             with st.spinner("📦 Loading vector store..."):
                 vector_manager = VectorStoreManager(
-                    model_name="all-MiniLM-L6-v2",
                     event_bus=st.session_state.event_bus
                 )
                 

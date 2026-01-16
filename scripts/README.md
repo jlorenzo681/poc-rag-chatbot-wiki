@@ -5,7 +5,7 @@ This directory contains scripts for managing the RAG Chatbot deployment with Pod
 ## Available Scripts
 
 ### `deploy.sh`
-Deploy the RAG Chatbot with both rag-chatbot and Ollama services using podman-compose.
+Deploy the RAG Chatbot with both rag-chatbot and Ollama services using docker-compose.
 
 ```bash
 # Basic deployment
@@ -38,7 +38,7 @@ Start development mode with hot reload for code changes while using compose for 
 
 **Features:**
 - Hot reload for `app.py`, `src/`, `config/`, and `.streamlit/`
-- Uses podman-compose for Ollama service
+- Uses docker-compose for Ollama service
 - Development container connected to compose network
 
 **Options:**
@@ -149,7 +149,7 @@ Clean up containers, images, volumes, and networks.
 
 ## Architecture
 
-All scripts now use `podman-compose.yml` to manage both services:
+All scripts now use `docker-compose.yml` to manage both services:
 - **rag-chatbot**: Streamlit web application
 - **ollama**: Local LLM inference server
 
@@ -158,14 +158,14 @@ Both containers are on the same network (`poc-rag-chatbot-wiki_rag-network`) and
 ## Troubleshooting
 
 **Ollama connection refused:**
-- Ensure both containers are running: `podman ps`
-- Check they're on the same network: `podman network inspect poc-rag-chatbot-wiki_rag-network`
+- Ensure both containers are running: `docker ps`
+- Check they're on the same network: `docker network inspect poc-rag-chatbot-wiki_rag-network`
 - Restart with compose: `./scripts/stop.sh && ./scripts/deploy.sh`
 
 **Models not found:**
 - Pull models: `./scripts/pull-ollama-models.sh llama3.2:3b`
-- List models: `podman exec ollama ollama list`
+- List models: `docker exec ollama ollama list`
 
 **Network issues:**
-- Always use `./scripts/deploy.sh` or `podman-compose up -d` to start services
-- Never start containers individually with `podman run`
+- Always use `./scripts/deploy.sh` or `docker-compose up -d` to start services
+- Never start containers individually with `docker run`

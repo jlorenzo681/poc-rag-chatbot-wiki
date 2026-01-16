@@ -5,9 +5,9 @@ set -e
 
 echo "Building RAG Chatbot container image..."
 
-podman build --no-cache -t rag-chatbot:latest -f Containerfile .
+docker build --no-cache -t rag-chatbot:latest -f Containerfile .
 
 echo "✓ Build complete!"
 echo ""
 echo "Image details:"
-podman images | grep rag-chatbot || true
+docker images | grep rag-chatbot || true

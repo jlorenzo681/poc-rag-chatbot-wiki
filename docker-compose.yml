@@ -14,17 +14,17 @@ services:
 
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
 
-
       - OLLAMA_HOST=http://ollama:11434
       - REDIS_URL=redis://redis:6379/0
     volumes:
       # Persistent data volumes
+      - .:/app:z
       - ./data/documents:/app/data/documents:z
       - ./data/vector_stores:/app/data/vector_stores:z
       - ./logs:/app/logs:z
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8501/_stcore/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,6 +59,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - OLLAMA_HOST=http://ollama:11434
 
     ports:
       - "8000:8000"
@@ -85,6 +86,7 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - OLLAMA_HOST=http://ollama:11434
 
     depends_on:
       - redis
@@ -113,7 +115,7 @@ services:
     networks:
       - rag-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
       interval: 30s
       timeout: 10s
       retries: 3

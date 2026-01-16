@@ -23,9 +23,9 @@ MODELS=(
 )
 
 # Check if ollama container is running
-if ! podman ps | grep -q ollama; then
+if ! docker ps | grep -q ollama; then
     echo -e "${RED}Error: Ollama container is not running${NC}"
-    echo "Please start it first with: podman-compose up -d ollama"
+    echo "Please start it first with: docker-compose up -d ollama"
     exit 1
 fi
 
@@ -75,12 +75,12 @@ for model in "${SELECTED_MODELS[@]}"; do
     echo -e "${BLUE}Checking model: ${model}${NC}"
 
     # Check if model already exists
-    if podman exec ollama ollama list | grep -q "^${model}"; then
+    if docker exec ollama ollama list | grep -q "^${model}"; then
         echo -e "${GREEN}✓ Model ${model} already exists, skipping${NC}"
         SKIPPED=$((SKIPPED + 1))
     else
         echo -e "${YELLOW}Pulling ${model}... (this may take a while)${NC}"
-        if podman exec ollama ollama pull "$model"; then
+        if docker exec ollama ollama pull "$model"; then
             echo -e "${GREEN}✓ Successfully pulled ${model}${NC}"
             PULLED=$((PULLED + 1))
         else
@@ -102,6 +102,6 @@ echo ""
 
 # List all available models
 echo "Available Ollama models:"
-podman exec ollama ollama list
+docker exec ollama ollama list
 
 exit $FAILED

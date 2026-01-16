@@ -4,16 +4,16 @@
 
 # Default target
 help:
-	@echo "RAG Chatbot - Podman Deployment"
+	@echo "RAG Chatbot - Docker Deployment"
 	@echo ""
 	@echo "Available commands:"
 	@echo "  make install      - Install dependencies locally"
-	@echo "  make build        - Build Podman container image"
+	@echo "  make build        - Build Docker container image"
 	@echo "  make run          - Run application locally (non-containerized)"
-	@echo "  make deploy       - Deploy with Podman"
+	@echo "  make deploy       - Deploy with Docker"
 	@echo "  make dev          - Deploy in development mode (containerized, hot reload)"
-	@echo "  make stop         - Stop Podman containers"
-	@echo "  make restart      - Restart Podman containers"
+	@echo "  make stop         - Stop Docker containers"
+	@echo "  make restart      - Restart Docker containers"
 	@echo "  make logs         - View container logs"
 	@echo "  make shell        - Open shell in running container"
 	@echo "  make clean        - Clean up containers only"
@@ -41,7 +41,7 @@ run:
 	@echo "Starting application locally..."
 	streamlit run app.py
 
-# Deploy with Podman
+# Deploy with Docker
 deploy:
 	@./scripts/deploy.sh
 
@@ -63,7 +63,7 @@ logs:
 # Open shell in container
 shell:
 	@echo "Opening shell in container..."
-	podman exec -it rag-chatbot /bin/bash
+	docker exec -it rag-chatbot /bin/bash
 
 # Clean up - containers only
 clean:
@@ -100,7 +100,7 @@ lint:
 # Check system requirements
 check:
 	@echo "Checking system requirements..."
-	@command -v podman >/dev/null 2>&1 && echo "✓ Podman installed" || echo "✗ Podman not found"
+	@command -v docker >/dev/null 2>&1 && echo "✓ Docker installed" || echo "✗ Docker not found"
 	@command -v python3 >/dev/null 2>&1 && echo "✓ Python3 installed" || echo "✗ Python3 not found"
 	@[ -f .env ] && echo "✓ .env file exists" || echo "⚠ .env file not found"
 	@echo ""

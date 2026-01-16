@@ -51,36 +51,35 @@ fi
 # Source environment variables
 export $(cat .env | grep -v '^#' | xargs)
 
-# Check if Podman is installed
-if ! command -v podman &> /dev/null; then
-    echo -e "${RED}Error: Podman is not installed${NC}"
-    echo "Please install Podman: https://podman.io/getting-started/installation"
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}Error: Docker is not installed${NC}"
+    echo "Please install Docker Desktop: https://www.docker.com/products/docker-desktop/"
     exit 1
 fi
 
-echo -e "${GREEN}✓ Podman is installed${NC}"
+echo -e "${GREEN}✓ Docker is installed${NC}"
 
 # Compose file location
-COMPOSE_FILE="podman-compose.yml"
+COMPOSE_FILE="docker-compose.yml"
 
-# Check if podman-compose is available
-if command -v podman-compose &> /dev/null; then
-    COMPOSE_CMD="podman-compose -f $COMPOSE_FILE"
-    echo -e "${GREEN}✓ Using podman-compose${NC}"
-elif command -v docker-compose &> /dev/null; then
+# Check for compose tool
+if command -v docker-compose &> /dev/null; then
     COMPOSE_CMD="docker-compose -f $COMPOSE_FILE"
-    echo -e "${YELLOW}⚠ Using docker-compose with Podman${NC}"
+    echo -e "${GREEN}✓ Using docker-compose${NC}"
+elif docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose -f $COMPOSE_FILE"
+    echo -e "${GREEN}✓ Using docker compose plugin${NC}"
 else
-    echo -e "${YELLOW}⚠ podman-compose not found, installing...${NC}"
-    pip install podman-compose
-    COMPOSE_CMD="podman-compose -f $COMPOSE_FILE"
+    echo -e "${RED}Error: docker-compose not found${NC}"
+    exit 1
 fi
 
 # Cleanup buildx container which can block startup
-if podman ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
+if docker ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
     echo -e "${YELLOW}Stopping and removing buildx_buildkit_default container...${NC}"
-    podman stop buildx_buildkit_default >/dev/null 2>&1 || true
-    podman rm buildx_buildkit_default >/dev/null 2>&1 || true
+    docker stop buildx_buildkit_default >/dev/null 2>&1 || true
+    docker rm buildx_buildkit_default >/dev/null 2>&1 || true
     echo -e "${GREEN}✓ buildx_buildkit_default removed${NC}"
 fi
 
@@ -93,7 +92,7 @@ echo -e "${YELLOW}Waiting for services to start...${NC}"
 sleep 10
 
 # Check if containers are running
-if podman ps | grep -q rag-chatbot; then
+if docker ps | grep -q rag-chatbot; then
     echo -e "\n${GREEN}======================================"
     echo "✓ Development mode started!"
     echo "======================================${NC}"
@@ -102,8 +101,6 @@ if podman ps | grep -q rag-chatbot; then
     echo "  - Frontend:      http://localhost:8501"
     echo "  - Backend API:   http://localhost:8000/docs"
     echo "  - Ollama:        http://localhost:11434"
-
-    echo "  - Ollama:      http://localhost:11434"
     echo ""
     echo "Hot reload enabled for:"
     echo "  - app.py"
@@ -114,9 +111,9 @@ if podman ps | grep -q rag-chatbot; then
     echo "Changes to these files will be reflected immediately!"
     echo ""
     echo "Useful commands:"
-    echo "  View logs:           podman logs -f rag-chatbot"
-    echo "  View ollama logs:    podman logs -f ollama"
-    echo "  Stop dev container:  podman stop rag-chatbot"
+    echo "  View logs:           docker logs -f rag-chatbot"
+    echo "  View ollama logs:    docker logs -f ollama"
+    echo "  Stop dev container:  docker stop rag-chatbot"
     echo "  Stop all:            $COMPOSE_CMD down"
     echo "  Pull ollama models:  ./scripts/pull-ollama-models.sh [--all|model_name]"
     echo ""
@@ -142,6 +139,6 @@ else
     echo -e "\n${RED}======================================"
     echo "✗ Failed to start development mode!"
     echo "======================================${NC}"
-    echo "Check logs with: podman logs rag-chatbot"
+    echo "Check logs with: docker logs rag-chatbot"
     exit 1
 fi

@@ -1,10 +1,10 @@
 #!/bin/bash
-# Deployment script for RAG Chatbot using Podman
+# Deployment script for RAG Chatbot using Docker
 
 set -e
 
 echo "======================================"
-echo "RAG Chatbot - Podman Deployment"
+echo "RAG Chatbot - Docker Deployment"
 echo "======================================"
 
 # Colors for output
@@ -47,35 +47,31 @@ if [ ! -f .env ]; then
 fi
 
 # Source environment variables
+# Source environment variables
 export $(cat .env | grep -v '^#' | xargs)
 
-# Check if Podman is installed
-if ! command -v podman &> /dev/null; then
-    echo -e "${RED}Error: Podman is not installed${NC}"
-    echo "Please install Podman: https://podman.io/getting-started/installation"
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}Error: Docker is not installed${NC}"
+    echo "Please install Docker Desktop: https://www.docker.com/products/docker-desktop/"
     exit 1
 fi
 
-echo -e "${GREEN}✓ Podman is installed${NC}"
+echo -e "${GREEN}✓ Docker is installed${NC}"
 
 # Compose file location
-COMPOSE_FILE="podman-compose.yml"
+COMPOSE_FILE="docker-compose.yml"
 
-# Check if podman compose is available (Podman Desktop includes this)
-if podman compose version &> /dev/null; then
-    COMPOSE_CMD="podman compose -f $COMPOSE_FILE"
-    echo -e "${GREEN}✓ Using podman compose${NC}"
-elif command -v podman-compose &> /dev/null; then
-    COMPOSE_CMD="podman-compose -f $COMPOSE_FILE"
-    echo -e "${GREEN}✓ Using podman-compose${NC}"
-elif command -v docker-compose &> /dev/null; then
+# Check for compose tool
+if command -v docker-compose &> /dev/null; then
     COMPOSE_CMD="docker-compose -f $COMPOSE_FILE"
-    echo -e "${YELLOW}⚠ Using docker-compose with Podman${NC}"
+    echo -e "${GREEN}✓ Using docker-compose${NC}"
+elif docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose -f $COMPOSE_FILE"
+    echo -e "${GREEN}✓ Using docker compose plugin${NC}"
 else
     echo -e "${RED}Error: No compose tool found${NC}"
-    echo "Please install Podman Desktop or podman-compose:"
-    echo "  brew install podman-compose"
-    echo "  or: pip install podman-compose"
+    echo "Please install Docker Desktop properly."
     exit 1
 fi
 
@@ -88,9 +84,9 @@ echo "Generating requirements.txt..."
 uv export --format requirements-txt > requirements.txt
 
 # Build the image only if it doesn't exist
-if ! podman image exists rag-chatbot:latest; then
+if ! docker image inspect rag-chatbot:latest >/dev/null 2>&1; then
     echo -e "\n${YELLOW}Image not found. Building container image...${NC}"
-    podman build -t rag-chatbot:latest -f Containerfile .
+    docker build -t rag-chatbot:latest -f Containerfile .
 else
     echo -e "\n${GREEN}✓ Image rag-chatbot:latest already exists${NC}"
 fi
@@ -100,10 +96,10 @@ echo -e "\n${YELLOW}Stopping existing containers...${NC}"
 $COMPOSE_CMD down 2>/dev/null || true
 
 # Cleanup buildx container which can block startup
-if podman ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
+if docker ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
     echo -e "${YELLOW}Stopping and removing buildx_buildkit_default container...${NC}"
-    podman stop buildx_buildkit_default >/dev/null 2>&1 || true
-    podman rm buildx_buildkit_default >/dev/null 2>&1 || true
+    docker stop buildx_buildkit_default >/dev/null 2>&1 || true
+    docker rm buildx_buildkit_default >/dev/null 2>&1 || true
     echo -e "${GREEN}✓ buildx_buildkit_default removed${NC}"
 fi
 
@@ -116,7 +112,7 @@ echo -e "\n${YELLOW}Waiting for application to start...${NC}"
 sleep 5
 
 # Check if containers are running
-if podman ps | grep -q rag-chatbot && podman ps | grep -q ollama; then
+if docker ps | grep -q rag-chatbot && docker ps | grep -q ollama; then
     echo -e "\n${GREEN}======================================"
     echo "✓ Deployment successful!"
     echo "======================================${NC}"
@@ -126,8 +122,8 @@ if podman ps | grep -q rag-chatbot && podman ps | grep -q ollama; then
     echo "  - Ollama:      http://localhost:11434"
     echo ""
     echo "Useful commands:"
-    echo "  View logs:           podman logs -f rag-chatbot"
-    echo "  View ollama logs:    podman logs -f ollama"
+    echo "  View logs:           docker logs -f rag-chatbot"
+    echo "  View ollama logs:    docker logs -f ollama"
     echo "  Stop all:            $COMPOSE_CMD down"
     echo "  Restart all:         $COMPOSE_CMD restart"
     echo "  Container status:    $COMPOSE_CMD ps"
@@ -156,7 +152,7 @@ else
     echo "✗ Deployment failed!"
     echo "======================================${NC}"
     echo "Check logs with:"
-    echo "  podman logs rag-chatbot"
-    echo "  podman logs ollama"
+    echo "  docker logs rag-chatbot"
+    echo "  docker logs ollama"
     exit 1
 fi

@@ -8,11 +8,11 @@ CONTAINER="rag-chatbot"
 if [ "$1" = "ollama" ]; then
     CONTAINER="ollama"
 elif [ "$1" = "all" ]; then
-    # Show both logs side by side (requires podman-compose or docker-compose)
-    if command -v podman-compose &> /dev/null; then
+    # Show both logs side by side (requires docker-compose or docker compose)
+    if docker compose version &> /dev/null; then
         echo "Viewing all service logs (Ctrl+C to exit)..."
         echo "=============================================="
-        podman-compose logs -f
+        docker compose logs -f
         exit 0
     elif command -v docker-compose &> /dev/null; then
         echo "Viewing all service logs (Ctrl+C to exit)..."
@@ -20,7 +20,7 @@ elif [ "$1" = "all" ]; then
         docker-compose logs -f
         exit 0
     else
-        echo "Error: podman-compose not available. Showing rag-chatbot logs only."
+        echo "Error: docker-compose not available. Showing rag-chatbot logs only."
         echo "Usage: $0 [rag-chatbot|ollama|all]"
     fi
 fi
@@ -28,4 +28,4 @@ fi
 echo "Viewing $CONTAINER logs (Ctrl+C to exit)..."
 echo "=============================================="
 
-podman logs -f $CONTAINER
+docker logs -f $CONTAINER

@@ -28,7 +28,7 @@ The system consists of four main components:
 - Python 3.10 or higher
 - Groq API key (get it from https://console.groq.com/keys)
 - Optional: OpenAI API key (only for OpenAI embeddings)
-- Optional: Podman (for containerized deployment)
+- Optional: Docker (for containerized deployment)
 
 ### Quick Start
 
@@ -55,9 +55,9 @@ Edit `.env` and add your Groq API key:
 GROQ_API_KEY=your-api-key-here
 ```
 
-#### Containerized Deployment (Podman)
+#### Containerized Deployment (Docker)
 
-For production deployment with Podman:
+For production deployment with Docker:
 
 ```bash
 # 1. Set up environment

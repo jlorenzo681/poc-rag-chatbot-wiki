@@ -2,7 +2,7 @@
 import os
 from typing import List, Optional
 from langchain_community.graphs import Neo4jGraph
-from langchain_experimental.graph_transformers import LLMGraphTransformer
+from .simple_graph_transformer import SimpleGraphTransformer
 from langchain_community.chat_models import ChatOllama
 from langchain_core.documents import Document
 import config.settings as settings
@@ -49,8 +49,9 @@ class GraphStoreManager:
                 temperature=0, # Deterministic for extraction
                 base_url=base_url
             )
-            self.llm_transformer = LLMGraphTransformer(llm=llm)
-            print("✓ Initialized LLM Graph Transformer")
+            # Use our robust custom transformer
+            self.llm_transformer = SimpleGraphTransformer(llm=llm)
+            print("✓ Initialized Simple Graph Transformer")
         except Exception as e:
             print(f"❌ Failed to initialize Graph Transformer: {e}")
 
@@ -66,23 +67,40 @@ class GraphStoreManager:
         print(f"\n🕸️ Extracting graph data from {len(documents)} documents...")
         print("  (This requires heavy LLM processing and may take time...)")
         
-        try:
-            # Convert documents to graph documents
-            # LLMGraphTransformer handles chunking internally if needed, or we pass chunks
-            graph_documents = self.llm_transformer.convert_to_graph_documents(documents)
-            
-            if not graph_documents:
-                print("⚠ No graph data extracted (LLM might have failed to find entities).")
-                return
+        # Process documents individually to prevent one failure from stopping the whole batch
+        valid_graph_documents = []
+        
+        from tqdm import tqdm
+        print(f"Processing {len(documents)} chunks individually for robustness...")
+        
+        for i, doc in enumerate(documents):
+            try:
+                # Process single document
+                # Note: convert_to_graph_documents expects a list
+                chunk_graph_docs = self.llm_transformer.convert_to_graph_documents([doc])
+                if chunk_graph_docs:
+                    valid_graph_documents.extend(chunk_graph_docs)
+                    print(f"  ✓ Chunk {i+1}/{len(documents)} processed successfully")
+                else:
+                    print(f"  ⚠ Chunk {i+1}/{len(documents)} yielded no graph data")
+                    
+            except Exception as e:
+                print(f"  ❌ Chunk {i+1}/{len(documents)} failed graph extraction: {str(e)}")
+                # Continue to next chunk
+                continue
 
-            print(f"✓ Extracted {len(graph_documents)} graph segments")
-            
+        if not valid_graph_documents:
+            print("⚠ No valid graph data extracted from any chunks.")
+            return
+
+        print(f"✓ Extracted {len(valid_graph_documents)} valid graph segments")
+        
+        try:
             # Store in Neo4j
-            self.graph.add_graph_documents(graph_documents)
+            self.graph.add_graph_documents(valid_graph_documents)
             print("✓ Graph data successfully stored in Neo4j")
-            
         except Exception as e:
-            print(f"❌ Error adding documents to graph: {e}")
+            print(f"❌ Error storing graph documents in Neo4j: {e}")
 
     
     def query_graph(self, query: str, llm=None) -> str:

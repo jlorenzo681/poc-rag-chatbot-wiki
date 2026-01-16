@@ -45,37 +45,37 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if Podman is installed
-if ! command -v podman &> /dev/null; then
-    echo -e "${RED}Error: Podman is not installed${NC}"
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}Error: Docker is not installed${NC}"
     exit 1
 fi
 
 # Stop and remove containers using compose if available
 echo -e "\n${YELLOW}Stopping and removing containers...${NC}"
-if command -v podman-compose &> /dev/null; then
-    podman-compose down 2>/dev/null || true
-    echo -e "${GREEN}✓ Containers stopped via podman-compose${NC}"
-elif command -v docker-compose &> /dev/null; then
+if command -v docker-compose &> /dev/null; then
     docker-compose down 2>/dev/null || true
     echo -e "${GREEN}✓ Containers stopped via docker-compose${NC}"
+elif docker compose version &> /dev/null; then
+    docker compose down 2>/dev/null || true
+    echo -e "${GREEN}✓ Containers stopped via docker compose${NC}"
 else
     # Manual removal
-    if podman ps -a | grep -q rag-chatbot; then
-        podman stop rag-chatbot 2>/dev/null || true
-        podman rm rag-chatbot 2>/dev/null || true
+    if docker ps -a | grep -q rag-chatbot; then
+        docker stop rag-chatbot 2>/dev/null || true
+        docker rm rag-chatbot 2>/dev/null || true
         echo -e "${GREEN}✓ rag-chatbot container removed${NC}"
     fi
 
-    if podman ps -a | grep -q ollama; then
-        podman stop ollama 2>/dev/null || true
-        podman rm ollama 2>/dev/null || true
+    if docker ps -a | grep -q ollama; then
+        docker stop ollama 2>/dev/null || true
+        docker rm ollama 2>/dev/null || true
         echo -e "${GREEN}✓ ollama container removed${NC}"
     fi
 
-    if podman ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
-        podman stop buildx_buildkit_default >/dev/null 2>&1 || true
-        podman rm buildx_buildkit_default >/dev/null 2>&1 || true
+    if docker ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
+        docker stop buildx_buildkit_default >/dev/null 2>&1 || true
+        docker rm buildx_buildkit_default >/dev/null 2>&1 || true
         echo -e "${GREEN}✓ buildx_buildkit_default container removed${NC}"
     fi
 fi
@@ -84,15 +84,15 @@ fi
 if [ "$REMOVE_IMAGES" = true ]; then
     echo -e "\n${YELLOW}Removing images...${NC}"
 
-    if podman image exists rag-chatbot:latest; then
-        podman rmi rag-chatbot:latest 2>/dev/null || true
+    if docker image inspect rag-chatbot:latest >/dev/null 2>&1; then
+        docker rmi rag-chatbot:latest 2>/dev/null || true
         echo -e "${GREEN}✓ rag-chatbot image removed${NC}"
     else
         echo -e "${YELLOW}⚠ rag-chatbot image not found${NC}"
     fi
 
-    if podman image exists docker.io/ollama/ollama:latest; then
-        podman rmi docker.io/ollama/ollama:latest 2>/dev/null || true
+    if docker image inspect docker.io/ollama/ollama:latest >/dev/null 2>&1; then
+        docker rmi docker.io/ollama/ollama:latest 2>/dev/null || true
         echo -e "${GREEN}✓ Ollama image removed${NC}"
     else
         echo -e "${YELLOW}⚠ Ollama image not found${NC}"
@@ -105,11 +105,18 @@ fi
 if [ "$REMOVE_VOLUMES" = true ]; then
     echo -e "\n${YELLOW}Removing volumes...${NC}"
 
-    if podman volume exists ollama-data; then
-        podman volume rm ollama-data 2>/dev/null || true
+    if docker volume inspect ollama-data >/dev/null 2>&1; then
+        docker volume rm ollama-data 2>/dev/null || true
         echo -e "${GREEN}✓ Ollama data volume removed${NC}"
     else
         echo -e "${YELLOW}⚠ Ollama data volume not found${NC}"
+    fi
+
+    if docker volume inspect poc-rag-chatbot-wiki_hf-cache >/dev/null 2>&1; then
+        docker volume rm poc-rag-chatbot-wiki_hf-cache 2>/dev/null || true
+        echo -e "${GREEN}✓ HuggingFace cache volume removed${NC}"
+    else
+        echo -e "${YELLOW}⚠ HuggingFace cache volume not found${NC}"
     fi
 else
     echo -e "\n${YELLOW}⚠ Volumes kept (use --volumes flag to remove Ollama models)${NC}"
@@ -118,15 +125,11 @@ fi
 # Remove networks if they exist and have no containers
 echo -e "\n${YELLOW}Cleaning up networks...${NC}"
 for network in rag-network poc-rag-chatbot-wiki_rag-network; do
-    if podman network exists $network 2>/dev/null; then
+    if docker network inspect $network >/dev/null 2>&1; then
         # Check if network has any containers
-        NETWORK_CONTAINERS=$(podman network inspect $network --format '{{len .Containers}}' 2>/dev/null || echo "0")
-        if [ "$NETWORK_CONTAINERS" = "0" ]; then
-            podman network rm $network 2>/dev/null || true
-            echo -e "${GREEN}✓ Network $network removed${NC}"
-        else
-            echo -e "${YELLOW}⚠ Network $network has active containers, keeping it${NC}"
-        fi
+        # Docker syntax for network inspect is lengthy, easier to just try removing
+        docker network rm $network 2>/dev/null || true
+        echo -e "${GREEN}✓ Network $network removed (if empty)${NC}"
     fi
 done
 
@@ -138,11 +141,11 @@ echo ""
 echo "Remaining resources:"
 echo ""
 echo "Containers:"
-podman ps -a | grep -E 'CONTAINER|rag-chatbot|ollama' || echo "  None"
+docker ps -a | grep -E 'CONTAINER|rag-chatbot|ollama' || echo "  None"
 echo ""
 echo "Images:"
-podman images | grep -E 'REPOSITORY|rag-chatbot|ollama' || echo "  None"
+docker images | grep -E 'REPOSITORY|rag-chatbot|ollama' || echo "  None"
 echo ""
 echo "Volumes:"
-podman volume ls | grep -E 'DRIVER|ollama-data' || echo "  None"
+docker volume ls | grep -E 'DRIVER|ollama-data' || echo "  None"
 echo ""
