@@ -51,7 +51,7 @@ class VectorStoreManager:
         print(f"🔧 Initializing HuggingFace embeddings (model: {model})")
         return HuggingFaceEmbeddings(
             model_name=model,
-            model_kwargs={},
+            model_kwargs={'use_safetensors': True},
             encode_kwargs={'normalize_embeddings': True}
         )
 
