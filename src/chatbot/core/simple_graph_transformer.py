@@ -13,7 +13,7 @@ class SimpleGraphTransformer:
     def __init__(self, llm: BaseChatModel):
         self.llm = llm
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are a data extraction expert. Extract entities and relationships from the text.
+            ("user", """You are a data extraction expert. Extract entities and relationships from the text.
             
             Return ONLY a JSON object with this format:
             {{
@@ -34,8 +34,9 @@ class SimpleGraphTransformer:
             3. Relation types should be UPPER_CASE (e.g. WORKS_AT, LOCATED_IN, USES).
             4. If no relationships found, return {{"relationships": []}}.
             5. Do not add any explanation or preamble. Only JSON.
-            """),
-            ("user", "{input}")
+            
+            Text to process:
+            {input}""")
         ])
         self.chain = self.prompt | llm
 

@@ -327,7 +327,12 @@ def main() -> None:
                     response = requests.get(models_url, timeout=2)
                     if response.status_code == 200:
                         data = response.json()
-                        available_models = [m["id"] for m in data.get("data", [])]
+                        data = response.json()
+                        # Filter out embedding models
+                        available_models = [
+                            m["id"] for m in data.get("data", []) 
+                            if "embedding" not in m["id"].lower()
+                        ]
                 except Exception:
                     pass
 

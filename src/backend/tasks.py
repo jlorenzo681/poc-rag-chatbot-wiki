@@ -41,24 +41,16 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
         # 5. Graph Extraction (if enabled)
         # 5. Graph Extraction (if enabled)
         if getattr(settings, "ENABLE_GRAPHRAG", False):
-            # Check if graph is already processed for this file
-            # Make marker model-aware to handle switching models
-            safe_llm_model = (llm_model or "default").replace("/", "_").replace(":", "_")
-            graph_marker_path = f"data/vector_stores/{file_hash}_{safe_llm_model}_graph.done"
-            
-            if os.path.exists(graph_marker_path):
-                 self.update_state(state='PROGRESS', meta={'status': 'Graph data already cached. Skipping extraction.'})
-                 print(f"✓ Graph marker found at {graph_marker_path}. Skipping extraction.")
-            else:
-                self.update_state(state='PROGRESS', meta={'status': f'Extracting Graph data (this may take a while)...'})
-                graph_manager.add_documents_to_graph(chunks)
-                # Create marker file upon success
-                try:
-                    with open(graph_marker_path, "w") as f:
-                        f.write("done")
-                    print(f"✓ Created graph marker at {graph_marker_path}")
-                except Exception as e:
-                    print(f"❌ Failed to create graph marker: {e}")
+            # Check cache using Manager (Clean Architecture)
+            # User request: Force extraction to ensure model loading
+            # if graph_manager.check_cache(file_hash):
+            #      self.update_state(state='PROGRESS', meta={'status': 'Graph data already cached. Skipping extraction.'})
+            #      print("✓ Graph data already cached. Skipping extraction.")
+            # else:
+            self.update_state(state='PROGRESS', meta={'status': f'Extracting Graph data (this may take a while)...'})
+            graph_manager.add_documents_to_graph(chunks)
+            # Mark completion
+            graph_manager.mark_as_completed(file_hash)
         
         return {
             "status": "completed", 

@@ -146,7 +146,7 @@ class GraphStoreManager:
             if llm is None:
                 if settings.DEFAULT_LLM_PROVIDER in ["lmstudio", "mlx"]:
                     # Auto-detect model if "local-model" is set
-                    model_name = settings.DEFAULT_LLM_MODEL
+                    model_name = self.model_name or settings.DEFAULT_LLM_MODEL
                     if model_name == "local-model":
                         try:
                             import requests
@@ -156,7 +156,16 @@ class GraphStoreManager:
                             if response.status_code == 200:
                                 data = response.json()
                                 if data.get("data"):
-                                    model_name = data["data"][0]["id"]
+                                    # Filter out embedding models to avoid selecting 'text-embedding-bge-m3' as LLM
+                                    for model_info in data["data"]:
+                                        model_id = model_info["id"]
+                                        if "embedding" not in model_id.lower():
+                                            model_name = model_id
+                                            print(f"🔍 Detected LLM model in LM Studio: {model_name}")
+                                            break
+                                    else:
+                                        # If all look like embeddings, just take the first one as fallback
+                                        model_name = data["data"][0]["id"]
                         except Exception:
                             pass # Fallback to default if detection fails
 
@@ -191,4 +200,41 @@ class GraphStoreManager:
         """Refresh graph schema."""
         if self.graph:
             self.graph.refresh_schema()
+
+    def _get_marker_path(self, file_hash: str) -> str:
+        """Generate the marker file path safely."""
+        # Make marker model-aware to handle switching models
+        # Prioritize instance model name, then default from settings
+        model_name = self.model_name or settings.DEFAULT_LLM_MODEL
+        safe_llm_model = model_name.replace("/", "_").replace(":", "_")
+        return f"data/vector_stores/{file_hash}_{safe_llm_model}_graph.done"
+
+    def check_cache(self, file_hash: str) -> bool:
+        """
+        Check if graph data has already been extracted for this file and model.
+        Returns True if cached.
+        """
+        if not getattr(settings, "ENABLE_GRAPHRAG", False):
+            return False
+            
+        marker_path = self._get_marker_path(file_hash)
+        if os.path.exists(marker_path):
+            print(f"✓ Graph marker found at {marker_path}")
+            return True
+        return False
+
+    def mark_as_completed(self, file_hash: str):
+        """
+        Create a marker file indicating graph extraction accomplishment.
+        """
+        if not getattr(settings, "ENABLE_GRAPHRAG", False):
+            return
+
+        marker_path = self._get_marker_path(file_hash)
+        try:
+            with open(marker_path, "w") as f:
+                f.write("done")
+            print(f"✓ Created graph marker at {marker_path}")
+        except Exception as e:
+            print(f"❌ Failed to create graph marker: {e}")
 

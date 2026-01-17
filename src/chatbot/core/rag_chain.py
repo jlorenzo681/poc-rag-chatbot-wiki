@@ -87,7 +87,7 @@ Context: {context}"""
         """
         if getattr(settings, "ENABLE_GRAPHRAG", False):
             print("🕸️ Enabling Hybrid RAG (Vector + Graph)")
-            self.graph_manager = GraphStoreManager()
+            self.graph_manager = GraphStoreManager(model_name=model_name)
             self.retriever = HybridRetriever(
                 vector_retriever=retriever,
                 graph_manager=self.graph_manager
@@ -139,8 +139,7 @@ Context: {context}"""
         """
         # Create prompt template
         prompt = ChatPromptTemplate.from_messages([
-            ("system", self.system_prompt),
-            ("human", "{input}")
+            ("user", f"{self.system_prompt}\n\nHuman: {{input}}")
         ])
 
         # Create document combination chain
@@ -189,16 +188,46 @@ Context: {context}"""
         else:
             raise ValueError(f"Unsupported memory type: {memory_type}")
 
+        # Create custom prompts without "system" role for LM Studio compatibility
+        from langchain.prompts import PromptTemplate
+
+        # 1. Condense Question Prompt (Rephrase follow-up question)
+        # We use a pure template string or a ChatPromptTemplate with only "user" role
+        condense_template = """Given the following conversation and a follow-up question, rephrase the follow-up question to be a standalone question.
+        
+        Chat History:
+        {chat_history}
+        
+        Follow Up Input: {question}
+        
+        Standalone question:"""
+        condense_question_prompt = PromptTemplate.from_template(condense_template)
+
+        # 2. OA Prompt (Answer question with context)
+        # Consolidate system instructions into the user prompt
+        qa_template = """You are a helpful assistant answering questions based on provided documents.
+        Use the context provided to answer questions accurately and comprehensively.
+        
+        Context:
+        {context}
+        
+        Question: {question}
+        
+        Answer:"""
+        qa_prompt = PromptTemplate.from_template(qa_template)
+
         # Create conversational chain
         conversational_chain = ConversationalRetrievalChain.from_llm(
             llm=self.llm,
             retriever=self.retriever,
             memory=memory,
             return_source_documents=True,
-            verbose=False
+            verbose=False,
+            condense_question_prompt=condense_question_prompt,
+            combine_docs_chain_kwargs={"prompt": qa_prompt}
         )
 
-        print("✓ Conversational RAG chain created")
+        print("✓ Conversational RAG chain created with custom prompts (User role only)")
         return conversational_chain
 
 
