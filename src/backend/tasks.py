@@ -6,7 +6,7 @@ import os
 import config.settings as settings
 
 @celery_app.task(bind=True)
-def process_document_task(self, file_path: str, api_key: str, embedding_type: str):
+def process_document_task(self, file_path: str, api_key: str, embedding_type: str, llm_model: str = None):
     """
     Celery task to process a document.
     """
@@ -15,8 +15,8 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
         
         # 1. Initialize Managers
         # Note: We pass None for event_bus to avoid overhead
-        vector_manager = VectorStoreManager()
-        graph_manager = GraphStoreManager()
+        vector_manager = VectorStoreManager(embedding_type=embedding_type)
+        graph_manager = GraphStoreManager(model_name=llm_model)
 
         # 2. Check Cache
         self.update_state(state='PROGRESS', meta={'status': 'Checking cache...'})
@@ -42,8 +42,9 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
         # 5. Graph Extraction (if enabled)
         if getattr(settings, "ENABLE_GRAPHRAG", False):
             # Check if graph is already processed for this file
-            # We use a simple marker file in the vector stores directory
-            graph_marker_path = f"data/vector_stores/{file_hash}_graph.done"
+            # Make marker model-aware to handle switching models
+            safe_llm_model = (llm_model or "default").replace("/", "_").replace(":", "_")
+            graph_marker_path = f"data/vector_stores/{file_hash}_{safe_llm_model}_graph.done"
             
             if os.path.exists(graph_marker_path):
                  self.update_state(state='PROGRESS', meta={'status': 'Graph data already cached. Skipping extraction.'})

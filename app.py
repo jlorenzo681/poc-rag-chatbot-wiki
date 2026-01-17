@@ -14,7 +14,7 @@ import streamlit as st
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config.settings import DOCUMENTS_DIR
+from config.settings import DOCUMENTS_DIR, LLM_BASE_URL, DEFAULT_EMBEDDING_TYPE
 # DocumentProcessor is now used by backend only
 from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
 from src.chatbot.core.vector_store_manager import VectorStoreManager
@@ -89,21 +89,22 @@ def initialize_session_state() -> None:
 
 
 
-def process_document(uploaded_file, api_key: str) -> tuple[bool, Optional[str]]:
+def process_document(uploaded_file, api_key: str, model_name: str = None) -> tuple[bool, Optional[str]]:
     """
     Process uploaded document via Backend API.
     
     Args:
         uploaded_file: Streamlit file object
         api_key: API key
+        model_name: Selected LLM model name
         
     Returns:
         Tuple (Success, File Hash)
     """
-    # Hardcoded to local embeddings
-    embedding_type = "huggingface"
+    # Use configured default embedding type
+    embedding_type = DEFAULT_EMBEDDING_TYPE
     files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
-    data = {"api_key": api_key, "embedding_type": embedding_type}
+    data = {"api_key": api_key, "embedding_type": embedding_type, "llm_model": model_name}
     
     try:
         # 1. Upload and Start Task
@@ -305,15 +306,15 @@ def main() -> None:
             api_key = ""
         else:  # LM Studio
             st.warning(
-                "⚠️ Make sure LM Studio is running in server mode (Local Server tab)"
+                "⚠️ Make sure LM Studio/Compatible is running in server mode"
             )
             lmstudio_url = os.getenv(
-                "LMSTUDIO_BASE_URL", "http://host.docker.internal:1234/v1"
+                "LLM_BASE_URL", LLM_BASE_URL
             )
             lmstudio_url = st.text_input(
-                "LM Studio Server URL",
+                "LM Studio/Compatible Server URL",
                 value=lmstudio_url,
-                help="LM Studio server URL (default: http://host.docker.internal:1234/v1)",
+                help=f"Server URL (default: {LLM_BASE_URL})",
             )
 
             # Dynamic Model Fetching
@@ -428,7 +429,7 @@ def main() -> None:
             ):
                 # Process document via API (No local save needed here, API handles it)
                 success, file_hash = process_document(
-                    uploaded_file, ""
+                    uploaded_file, "", model_name=model_name
                 )
 
                 if success:

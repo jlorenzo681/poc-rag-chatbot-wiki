@@ -9,7 +9,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_ollama import OllamaEmbeddings
+from langchain_community.embeddings import OllamaEmbeddings
 import os
 import hashlib
 import fasttext
@@ -25,13 +25,15 @@ class VectorStoreManager:
 
     def __init__(
         self,
-        event_bus: Optional[EventBus] = None
+        event_bus: Optional[EventBus] = None,
+        embedding_type: Optional[str] = None
     ):
         """
         Initialize the vector store manager.
         """
         self.vector_store = None
         self.event_bus = event_bus
+        self.embedding_type = embedding_type
         self.ft_model = self._load_fasttext_model()
         self.current_embedding_model = None # Track which model is currently loaded
 
@@ -85,16 +87,60 @@ class VectorStoreManager:
         Returns:
             Embeddings instance
         """
-        if language_code == 'en':
-            model_name = settings.EMBEDDING_MODEL_EN
-            print(f"🔧 Selecting English embedding model: {model_name}")
+        if self.embedding_type:
+            embedding_type = self.embedding_type
         else:
-            model_name = settings.EMBEDDING_MODEL_MULTILINGUAL
-            print(f"🔧 Selecting Multilingual embedding model ({language_code}): {model_name}")
+            embedding_type = getattr(settings, "DEFAULT_EMBEDDING_TYPE", "lmstudio")
 
-        return OllamaEmbeddings(
-            model=model_name
-        )
+        if embedding_type == "huggingface":
+            # Use local HuggingFace embeddings (sentence-transformers)
+            # Default to a good multilingual model if language is not English, or standard one for English
+            # But specific models in settings might be Ollama-specific names. 
+            # We'll use a standard variable or hardcoded defaults for HF to be safe/simple for now.
+            if language_code == 'en':
+                model_name = "sentence-transformers/all-MiniLM-L6-v2"
+            else:
+                model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            
+            print(f"🔧 Selecting HuggingFace embedding model: {model_name}")
+            return HuggingFaceEmbeddings(
+                model_name=model_name,
+                model_kwargs={'device': 'cpu'}, # Use 'mps' if sure about Mac, but 'cpu' is safest fallback
+                encode_kwargs={'normalize_embeddings': True}
+            )
+
+        elif embedding_type in ["lmstudio", "mlx"]:
+             # Use LM Studio's embedding endpoint (OpenAI compatible)
+             # MLX usually provides an OpenAI compatible endpoint as well
+             from langchain_openai import OpenAIEmbeddings
+             base_url = getattr(settings, "LLM_BASE_URL", "http://host.docker.internal:1234/v1")
+             if language_code == 'en':
+                 model_name = settings.EMBEDDING_MODEL_EN
+             else:
+                 model_name = settings.EMBEDDING_MODEL_MULTILINGUAL
+
+             print(f"🔧 Selecting {embedding_type.upper()} embedding endpoint: {base_url} with model {model_name}")
+             
+             return OpenAIEmbeddings(
+                 base_url=base_url,
+                 api_key="lm-studio",
+                 model=model_name, # Identifier often ignored by LM Studio, but good practice
+                 check_embedding_ctx_length=False 
+             )
+        
+        else:
+            # Default to Ollama
+            if language_code == 'en':
+                model_name = settings.EMBEDDING_MODEL_EN
+                print(f"🔧 Selecting English embedding model: {model_name}")
+            else:
+                model_name = settings.EMBEDDING_MODEL_MULTILINGUAL
+                print(f"🔧 Selecting Multilingual embedding model ({language_code}): {model_name}")
+
+            return OllamaEmbeddings(
+                model=model_name,
+                base_url=os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+            )
 
     def get_file_hash(self, file_path: str) -> str:
         """
@@ -115,24 +161,36 @@ class VectorStoreManager:
         language = self.detect_language(sample_text)
         
         # Initialize appropriate embeddings
+        # Initialize appropriate embeddings
         self.embeddings = self._get_embeddings_for_language(language)
 
+        # Helper to get the model name being used
+        current_model_name = "default"
+        if hasattr(self.embeddings, 'model'):
+             current_model_name = self.embeddings.model
+        elif hasattr(self.embeddings, 'model_name'):
+             current_model_name = self.embeddings.model_name
+        
+        # Sanitize model name for filesystem
+        safe_model_name = current_model_name.replace("/", "_").replace(":", "_")
+
         # If cache_key provided, check if cached version exists
-        # NOTE: Using a simple cache key might be risky if we switch models for the same file.
-        # Ideally, cache key should include model name, but for now we follow existing pattern.
         if cache_key:
-            # Append language/model specific suffix to avoid mixing incompatible embeddings
-            cache_path = f"data/vector_stores/{cache_key}_{language}"
+            # Append language AND model specific suffix to avoid mixing incompatible embeddings
+            # New format: {hash}_{safe_model_name}_{language}
+            cache_path = f"data/vector_stores/{cache_key}_{safe_model_name}_{language}"
+            
             if os.path.exists(cache_path):
                 print(f"\n📦 Loading cached vector store: {cache_path}...")
+                self.current_embedding_model = current_model_name # Track it
                 return self.load_vector_store(cache_path)
             
-            # Legacy fallback
-            old_cache_path = f"data/vector_stores/{cache_key}"
-            if os.path.exists(old_cache_path):
-                 print(f"\n⚠ Found legacy cache at {old_cache_path}, but ignoring to ensure correct embedding model.")
+            # Legacy fallback (language only)
+            legacy_path = f"data/vector_stores/{cache_key}_{language}"
+            if os.path.exists(legacy_path):
+                 print(f"\n⚠ Found legacy cache at {legacy_path}, but ignoring to ensure correct embedding model ({current_model_name}).")
 
-        print(f"\n🔄 Creating vector store from {len(documents)} documents...")
+        print(f"\n🔄 Creating vector store from {len(documents)} documents using {current_model_name}...")
         self.vector_store = FAISS.from_documents(
             documents=documents,
             embedding=self.embeddings
@@ -141,7 +199,7 @@ class VectorStoreManager:
 
         # Save to cache if cache_key provided
         if cache_key:
-            cache_path = f"data/vector_stores/{cache_key}_{language}"
+            cache_path = f"data/vector_stores/{cache_key}_{safe_model_name}_{language}"
             os.makedirs(os.path.dirname(cache_path), exist_ok=True)
             self.save_vector_store(cache_path)
             print(f"✓ Vector store cached at: {cache_path}")
@@ -176,7 +234,9 @@ class VectorStoreManager:
             if os.path.exists(parent_dir):
                 candidates = [
                     d for d in os.listdir(parent_dir) 
-                    if d.startswith(base_name + "_")
+                    if d.startswith(base_name + "_") 
+                    and not d.endswith("_graph.done")
+                    and os.path.isdir(os.path.join(parent_dir, d))
                 ]
                 if candidates:
                     # Use the first match (usually just one language per file)

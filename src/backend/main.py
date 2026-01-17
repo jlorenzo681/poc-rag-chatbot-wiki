@@ -36,7 +36,8 @@ def sanitize_filename(filename: str) -> str:
 async def upload_document(
     file: UploadFile = File(...),
     api_key: str = Form(""),
-    embedding_type: str = Form("huggingface")
+    embedding_type: str = Form("huggingface"),
+    llm_model: str = Form(None) 
 ):
     try:
         filename = sanitize_filename(file.filename)
@@ -46,7 +47,7 @@ async def upload_document(
             shutil.copyfileobj(file.file, buffer)
             
         # Trigger Celery Task
-        task = process_document_task.delay(file_path, api_key, embedding_type)
+        task = process_document_task.delay(file_path, api_key, embedding_type, llm_model)
         
         return {
             "task_id": task.id, 
@@ -55,6 +56,8 @@ async def upload_document(
             "message": "File uploaded and processing started"
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/tasks/{task_id}")

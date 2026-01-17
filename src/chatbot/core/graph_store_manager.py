@@ -4,6 +4,7 @@ from typing import List, Optional
 from langchain_community.graphs import Neo4jGraph
 from .simple_graph_transformer import SimpleGraphTransformer
 from langchain_community.chat_models import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 import config.settings as settings
 
@@ -11,9 +12,10 @@ class GraphStoreManager:
     """
     Manages Neo4j graph database interactions and document transformation.
     """
-    def __init__(self):
+    def __init__(self, model_name: Optional[str] = None):
         self.graph = None
         self.llm_transformer = None
+        self.model_name = model_name
         
         if getattr(settings, "ENABLE_GRAPHRAG", False):
             self._initialize_graph()
@@ -38,17 +40,43 @@ class GraphStoreManager:
     def _initialize_transformer(self):
         """Initialize LLM graph transformer."""
         try:
-            # Use Llama 3.1 for extraction
-            # Use Llama 3.1 for extraction
-            base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-            print(f"DEBUG: OLLAMA_BASE_URL={base_url}")
-            print(f"DEBUG: DEFAULT_LLM_MODEL={settings.DEFAULT_LLM_MODEL}")
+            llm = None
+            if settings.DEFAULT_LLM_PROVIDER in ["lmstudio", "mlx"]:
+                print(f"🔧 Using {settings.DEFAULT_LLM_PROVIDER.upper()} for Graph Extraction: {settings.LLM_BASE_URL}")
+                
+                # Auto-detect model if "local-model" is set (default)
+                # Prioritize instance override model_name
+                model_name = self.model_name or settings.DEFAULT_LLM_MODEL
+                
+                if model_name == "local-model":
+                    try:
+                        import requests
+                        models_url = f"{settings.LLM_BASE_URL.rstrip('/v1')}/v1/models"
+                        response = requests.get(models_url, timeout=2)
+                        if response.status_code == 200:
+                            data = response.json()
+                            if data.get("data"):
+                                model_name = data["data"][0]["id"]
+                                print(f"🔍 Detected loaded model in LM Studio: {model_name}")
+                    except Exception as e:
+                        print(f"⚠ Failed to auto-detect model from LM Studio: {e}")
+                        
+                llm = ChatOpenAI(
+                    base_url=settings.LLM_BASE_URL,
+                    api_key="lm-studio",
+                    model=model_name,
+                    temperature=0
+                )
+            else:
+                # Use Ollama
+                base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+                print(f"🔧 Using Ollama for Graph Extraction: {base_url}")
+                llm = ChatOllama(
+                    model=settings.DEFAULT_LLM_MODEL,
+                    temperature=0, # Deterministic for extraction
+                    base_url=base_url
+                )
             
-            llm = ChatOllama(
-                model=settings.DEFAULT_LLM_MODEL,
-                temperature=0, # Deterministic for extraction
-                base_url=base_url
-            )
             # Use our robust custom transformer
             self.llm_transformer = SimpleGraphTransformer(llm=llm)
             print("✓ Initialized Simple Graph Transformer")
@@ -114,12 +142,36 @@ class GraphStoreManager:
             from langchain_community.chains.graph_qa.cypher import GraphCypherQAChain
             
             # Use provided LLM or create a default one
+            # Use provided LLM or create a default one
             if llm is None:
-                llm = ChatOllama(
-                    model=settings.DEFAULT_LLM_MODEL,
-                    temperature=0,
-                    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-                )
+                if settings.DEFAULT_LLM_PROVIDER in ["lmstudio", "mlx"]:
+                    # Auto-detect model if "local-model" is set
+                    model_name = settings.DEFAULT_LLM_MODEL
+                    if model_name == "local-model":
+                        try:
+                            import requests
+                            # Note: In query_graph we are likely inside a request, so prints might not show in main stdout easily, but useful for debug
+                            models_url = f"{settings.LLM_BASE_URL.rstrip('/v1')}/v1/models"
+                            response = requests.get(models_url, timeout=2)
+                            if response.status_code == 200:
+                                data = response.json()
+                                if data.get("data"):
+                                    model_name = data["data"][0]["id"]
+                        except Exception:
+                            pass # Fallback to default if detection fails
+
+                    llm = ChatOpenAI(
+                        base_url=settings.LLM_BASE_URL,
+                        api_key="lm-studio",
+                        model=model_name,
+                        temperature=0
+                    )
+                else:
+                    llm = ChatOllama(
+                        model=settings.DEFAULT_LLM_MODEL,
+                        temperature=0,
+                        base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+                    )
 
             chain = GraphCypherQAChain.from_llm(
                 llm=llm, 
