@@ -283,83 +283,69 @@ def main() -> None:
 
         # LLM Provider Selection
         st.subheader("LLM Provider")
-        llm_provider = st.radio(
-            "Choose Provider",
-            ["LM Studio", "Ollama"],
-            help="LM Studio: Local (GPU accelerated), Ollama: Local (containerized)",
-        )
+        st.info("Using **LM Studio** (Local GPU Accelerated)")
+        llm_provider = "LM Studio"
 
         st.divider()
 
         # Provider-specific configuration
         ollama_url = ""
-        lmstudio_url = ""
+        
+        st.warning(
+            "⚠️ Make sure LM Studio/Compatible is running in server mode"
+        )
+        lmstudio_url = os.getenv(
+            "LLM_BASE_URL", LLM_BASE_URL
+        )
+        lmstudio_url = st.text_input(
+            "LM Studio/Compatible Server URL",
+            value=lmstudio_url,
+            help=f"Server URL (default: {LLM_BASE_URL})",
+        )
 
-        if llm_provider == "Ollama":
-            ollama_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-            st.text_input(
-                "Ollama Server URL",
-                value=ollama_url,
-                disabled=True,
-                help="Ollama server URL (from environment)",
+        # Dynamic Model Fetching
+        available_models = []
+        if lmstudio_url:
+            try:
+                # LM Studio API is OpenAI compatible
+                import requests
+                models_url = f"{lmstudio_url.rstrip('/')}/models"
+                response = requests.get(models_url, timeout=2)
+                if response.status_code == 200:
+                    data = response.json()
+                    # Filter out embedding models (catch 'embed' and 'embedding')
+                    available_models = [
+                        m["id"] for m in data.get("data", []) 
+                        if "embed" not in m["id"].lower()
+                    ]
+            except Exception:
+                pass
+
+        if not available_models:
+            available_models = ["local-model"]
+
+        # Allow custom model input
+        available_models.append("Other...")
+
+        selected_model = st.selectbox(
+            "Model Name",
+            available_models,
+            help="Select a model loaded in LM Studio"
+        )
+
+        if selected_model == "Other...":
+            model_name = st.text_input(
+                "Enter Custom Model Name",
+                value="local-model",
+                help="Enter the model name manually"
             )
-
-            model_name = st.selectbox(
-                "Model",
-                ["llama3.2:3b", "llama3.2:1b"],
-                help="Select the Ollama model (pull it first if needed)",
-            )
-            api_key = ""
-        else:  # LM Studio
-            st.warning(
-                "⚠️ Make sure LM Studio/Compatible is running in server mode"
-            )
-            lmstudio_url = os.getenv(
-                "LLM_BASE_URL", LLM_BASE_URL
-            )
-            lmstudio_url = st.text_input(
-                "LM Studio/Compatible Server URL",
-                value=lmstudio_url,
-                help=f"Server URL (default: {LLM_BASE_URL})",
-            )
-
-            # Dynamic Model Fetching
-            available_models = []
-            if lmstudio_url:
-                try:
-                    # LM Studio API is OpenAI compatible
-                    import requests
-                    models_url = f"{lmstudio_url.rstrip('/')}/models"
-                    response = requests.get(models_url, timeout=2)
-                    if response.status_code == 200:
-                        data = response.json()
-                        data = response.json()
-                        # Filter out embedding models
-                        available_models = [
-                            m["id"] for m in data.get("data", []) 
-                            if "embedding" not in m["id"].lower()
-                        ]
-                except Exception:
-                    pass
-
-            if available_models:
-                model_name = st.selectbox(
-                    "Model Name",
-                    available_models,
-                    help="Select a model loaded in LM Studio"
-                )
-            else:
-                st.info("💡 Start LM Studio server to see models here.")
-                model_name = st.text_input(
-                    "Model Name",
-                    value="local-model",
-                    help="Enter the model name manually if fetching failed",
-                )
-            api_key = ""
-
-        st.divider()
-
-
+        else:
+            model_name = selected_model
+        
+        if not available_models or (len(available_models) == 2 and available_models[0] == "local-model"):
+             st.caption("💡 Tip: Start LM Studio server to see loaded models here.")
+        
+        api_key = ""
 
         st.divider()
 
@@ -427,10 +413,8 @@ def main() -> None:
                 st.session_state.last_uploaded_filename = None
 
         # Process button
-        can_process = uploaded_file and (
-            llm_provider == "Ollama"
-            or (llm_provider == "LM Studio" and lmstudio_url)
-        )
+        # Process button
+        can_process = uploaded_file and lmstudio_url
 
         if uploaded_file and can_process:
             if st.button(

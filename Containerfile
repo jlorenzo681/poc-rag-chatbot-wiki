@@ -36,9 +36,7 @@ COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir -r requirements.txt
 
-# Pre-download HuggingFace model for offline use
-RUN --mount=type=cache,target=/app/.cache/huggingface \
-    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+# Pre-download HuggingFace model step removed to use local cache
 
 # ============================================
 # Final stage - application code

@@ -51,7 +51,7 @@ services:
       - .:/app:z
       - ./data/documents:/app/data/documents:z
       - ./data/vector_stores:/app/data/vector_stores:z
-      - hf-cache:/app/.cache/huggingface:z
+      - ${HOME}/.cache/huggingface:/app/.cache/huggingface:z
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -79,7 +79,7 @@ services:
       - ./data/documents:/app/data/documents:z
       - ./data/vector_stores:/app/data/vector_stores:z
       - ./logs:/app/logs:z
-      - hf-cache:/app/.cache/huggingface:z
+      - ${HOME}/.cache/huggingface:/app/.cache/huggingface:z
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -126,5 +126,4 @@ networks:
 
 volumes:
   redis-data:
-  hf-cache:
   neo4j-data:
