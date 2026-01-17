@@ -221,28 +221,57 @@ class GraphStoreManager:
             for record in data:
                 # Process source node
                 source = record['n']
-                source_id = source.get('id') or source.get('name') or str(source.id)
+                # Handle both dict and Node object types
+                if hasattr(source, 'element_id'):
+                    # Neo4j 5.x Node object
+                    source_id = source.element_id
+                    source_props = dict(source)
+                    source_label = list(source.labels)[0] if source.labels else "Node"
+                elif hasattr(source, 'id'):
+                    # Neo4j 4.x Node object
+                    source_id = str(source.id)
+                    source_props = dict(source)
+                    source_label = list(source.labels)[0] if hasattr(source, 'labels') and source.labels else "Node"
+                else:
+                    # Fallback for dict
+                    source_id = source.get('id', str(hash(str(source))))
+                    source_props = source
+                    source_label = "Node"
+                
                 nodes[source_id] = {
                     "id": source_id,
-                    "label": source.get('name', source_id),
-                    "type": list(source.labels)[0] if source.labels else "Node"
+                    "label": source_props.get('id', source_props.get('name', source_id[:20])),
+                    "type": source_label
                 }
                 
                 # Process target node
                 target = record['m']
-                target_id = target.get('id') or target.get('name') or str(target.id)
+                if hasattr(target, 'element_id'):
+                    target_id = target.element_id
+                    target_props = dict(target)
+                    target_label = list(target.labels)[0] if target.labels else "Node"
+                elif hasattr(target, 'id'):
+                    target_id = str(target.id)
+                    target_props = dict(target)
+                    target_label = list(target.labels)[0] if hasattr(target, 'labels') and target.labels else "Node"
+                else:
+                    target_id = target.get('id', str(hash(str(target))))
+                    target_props = target
+                    target_label = "Node"
+                
                 nodes[target_id] = {
                     "id": target_id,
-                    "label": target.get('name', target_id),
-                    "type": list(target.labels)[0] if target.labels else "Node"
+                    "label": target_props.get('id', target_props.get('name', target_id[:20])),
+                    "type": target_label
                 }
                 
                 # Process relationship
                 rel = record['r']
+                rel_type = type(rel).__name__ if hasattr(rel, '__name__') else (rel.type if hasattr(rel, 'type') else "RELATED_TO")
                 edges.append({
                     "source": source_id,
                     "target": target_id,
-                    "label": type(rel).__name__
+                    "label": rel_type
                 })
                 
             return {
@@ -252,6 +281,8 @@ class GraphStoreManager:
             
         except Exception as e:
             print(f"❌ Error fetching visual graph: {e}")
+            import traceback
+            traceback.print_exc()
             return {"nodes": [], "edges": []}
 
 

@@ -230,6 +230,9 @@ def initialize_chatbot(
                     "model_name": model_name
                 }
             )
+            
+            # Store reference to rag_chain for graph_manager access
+            chatbot.rag_chain = rag_chain
 
             st.session_state.chatbot = chatbot
             st.success("✓ Chatbot ready!")
@@ -560,10 +563,11 @@ def main() -> None:
             graph_manager = None
             try:
                 # GraphRAG stores graph_manager on the RAGChain instance
-                if hasattr(st.session_state.chatbot, 'chain'):
-                    chain = st.session_state.chatbot.chain
-                    if hasattr(chain, 'graph_manager'):
-                        graph_manager = chain.graph_manager
+                # Access it through the rag_chain reference we stored
+                if hasattr(st.session_state.chatbot, 'rag_chain'):
+                    rag_chain = st.session_state.chatbot.rag_chain
+                    if hasattr(rag_chain, 'graph_manager'):
+                        graph_manager = rag_chain.graph_manager
             except Exception as e:
                 st.error(f"Error accessing graph manager: {e}")
                 
