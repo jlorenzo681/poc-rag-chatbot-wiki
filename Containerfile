@@ -35,8 +35,11 @@ RUN mkdir -p data/documents data/vector_stores logs /app/.cache/huggingface
 # Pre-download HuggingFace model for offline use
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
-# Copy application code
-COPY . .
+# Copy only essential application code (not everything)
+COPY app.py .
+COPY config/ ./config/
+COPY src/ ./src/
+COPY .streamlit/ ./.streamlit/
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && \

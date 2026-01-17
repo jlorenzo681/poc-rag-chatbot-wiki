@@ -1,6 +1,6 @@
 
 import os
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from langchain_community.graphs import Neo4jGraph
 from .simple_graph_transformer import SimpleGraphTransformer
 from langchain_community.chat_models import ChatOllama
@@ -195,6 +195,65 @@ class GraphStoreManager:
         except Exception as e:
             print(f"❌ Graph Query Error: {e}")
             return ""
+
+    def get_visual_graph(self, limit: int = 100) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Retrieve nodes and relationships for visualization.
+        Returns raw data to be formatted by the frontend.
+        """
+        if not self.graph:
+            return {"nodes": [], "edges": []}
+
+        try:
+            # Query to get a subgraph
+            query = f"""
+            MATCH (n)-[r]->(m)
+            RETURN n, r, m
+            LIMIT {limit}
+            """
+            
+            # Use the graph's query method directly
+            data = self.graph.query(query)
+            
+            nodes = {}
+            edges = []
+            
+            for record in data:
+                # Process source node
+                source = record['n']
+                source_id = source.get('id') or source.get('name') or str(source.id)
+                nodes[source_id] = {
+                    "id": source_id,
+                    "label": source.get('name', source_id),
+                    "type": list(source.labels)[0] if source.labels else "Node"
+                }
+                
+                # Process target node
+                target = record['m']
+                target_id = target.get('id') or target.get('name') or str(target.id)
+                nodes[target_id] = {
+                    "id": target_id,
+                    "label": target.get('name', target_id),
+                    "type": list(target.labels)[0] if target.labels else "Node"
+                }
+                
+                # Process relationship
+                rel = record['r']
+                edges.append({
+                    "source": source_id,
+                    "target": target_id,
+                    "label": type(rel).__name__
+                })
+                
+            return {
+                "nodes": list(nodes.values()),
+                "edges": edges
+            }
+            
+        except Exception as e:
+            print(f"❌ Error fetching visual graph: {e}")
+            return {"nodes": [], "edges": []}
+
 
     def refresh_schema(self):
         """Refresh graph schema."""

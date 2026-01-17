@@ -54,10 +54,10 @@ fi
 # Stop and remove containers using compose if available
 echo -e "\n${YELLOW}Stopping and removing containers...${NC}"
 if command -v docker-compose &> /dev/null; then
-    docker-compose down 2>/dev/null || true
+    docker-compose -p rag-fresh down 2>/dev/null || true
     echo -e "${GREEN}✓ Containers stopped via docker-compose${NC}"
 elif docker compose version &> /dev/null; then
-    docker compose down 2>/dev/null || true
+    docker compose -p rag-fresh down 2>/dev/null || true
     echo -e "${GREEN}✓ Containers stopped via docker compose${NC}"
 else
     # Manual removal

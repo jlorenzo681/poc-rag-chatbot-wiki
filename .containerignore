@@ -21,6 +21,10 @@ venv/
 env/
 ENV/
 .venv
+uv.lock
+pyproject.toml
+.cache/
+.ruff_cache/
 
 # IDE
 .vscode/
@@ -48,6 +52,7 @@ htmlcov/
 # Documentation (optional - remove if you want docs in container)
 *.md
 !README.md
+docs/
 
 # Temporary files
 *.log
@@ -61,4 +66,10 @@ sample_*.txt
 
 # OS files
 .DS_Store
-Thumbs.db
+Thums.db
+
+# Development artifacts
+deployment/
+scripts/
+.devcontainer/
+.python-version

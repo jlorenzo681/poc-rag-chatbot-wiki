@@ -39,7 +39,7 @@ NEO4J_USERNAME: str = "neo4j"
 NEO4J_PASSWORD: str = "password"
 
 # LLM Settings
-DEFAULT_LLM_PROVIDER: str = "lmstudio" # Options: "ollama", "lmstudio", "mlx"
+DEFAULT_LLM_PROVIDER: str = "lmstudio" # Options: "ollama", "lmstudio"
 DEFAULT_LLM_MODEL: str = "local-model" # LM Studio will auto-detect or user selects
 LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "http://host.docker.internal:1234/v1")
 DEFAULT_TEMPERATURE: float = 0.3

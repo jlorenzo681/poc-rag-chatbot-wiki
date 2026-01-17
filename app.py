@@ -19,6 +19,7 @@ from config.settings import DOCUMENTS_DIR, LLM_BASE_URL, DEFAULT_EMBEDDING_TYPE
 from src.chatbot.core.rag_chain import RAGChain, RAGChatbot
 from src.chatbot.core.vector_store_manager import VectorStoreManager
 from src.chatbot.core.event_bus import EventBus, Event, DocumentUploadEvent, ProcessingCompleteEvent, ChatResponseEvent, ErrorEvent
+from streamlit_agraph import agraph, Node, Edge, Config
 
 import requests
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
@@ -503,42 +504,94 @@ def main() -> None:
             """)
 
     else:
-        # Display chat messages
-        for message in st.session_state.messages:
-            display_chat_message(
-                message["role"], message["content"], message.get("sources")
-            )
+        # Create tabs for Chat and Graph
+        tab1, tab2 = st.tabs(["💬 Chat", "🕸️ Knowledge Graph"])
+        
+        with tab1:
+            # Display chat messages
+            for message in st.session_state.messages:
+                display_chat_message(
+                    message["role"], message["content"], message.get("sources")
+                )
 
-        # Chat input
-        if prompt := st.chat_input("Ask a question about your document..."):
-            # Add user message
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            display_chat_message("user", prompt)
+            # Chat input
+            if prompt := st.chat_input("Ask a question about your document..."):
+                # Add user message
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                display_chat_message("user", prompt)
 
-            # Generate response
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
-                    response = st.session_state.chatbot.ask(prompt)
+                # Generate response
+                with st.chat_message("assistant"):
+                    with st.spinner("Thinking..."):
+                        response = st.session_state.chatbot.ask(prompt)
 
-                    # Display answer
-                    answer = response["answer"]
-                    st.write(answer)
+                        # Display answer
+                        answer = response["answer"]
+                        st.write(answer)
 
-                    # Display sources
-                    sources = response.get("sources", [])
-                    if sources:
-                        with st.expander("📚 View Sources"):
-                            for source in sources:
-                                st.markdown(f"**Source {source['index']}:**")
-                                st.markdown(f"```\n{source['content']}\n```")
-                                if source["metadata"]:
-                                    st.caption(f"Metadata: {source['metadata']}")
-                                st.divider()
+                        # Display sources
+                        sources = response.get("sources", [])
+                        if sources:
+                            with st.expander("📚 View Sources"):
+                                for source in sources:
+                                    st.markdown(f"**Source {source['index']}:**")
+                                    st.markdown(f"```\n{source['content']}\n```")
+                                    if source["metadata"]:
+                                        st.caption(f"Metadata: {source['metadata']}")
+                                    st.divider()
 
-                    # Add to message history
-                    st.session_state.messages.append(
-                        {"role": "assistant", "content": answer, "sources": sources}
+                        # Add to message history
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": answer, "sources": sources}
+                        )
+
+        with tab2:
+            st.subheader("Knowledge Graph Visualization")
+            
+            # Check if graph manager is available
+            graph_manager = None
+            try:
+                # Navigating: Chatbot -> Chain -> Retriever -> GraphManager
+                # Note: This depends on the exact structure of the chain
+                if hasattr(st.session_state.chatbot.chain, "retriever"):
+                    retriever = st.session_state.chatbot.chain.retriever
+                    if hasattr(retriever, "graph_manager"):
+                        graph_manager = retriever.graph_manager
+            except Exception:
+                pass
+                
+            if graph_manager:
+                with st.spinner("Fetching graph data..."):
+                    data = graph_manager.get_visual_graph(limit=100)
+                    
+                if data["nodes"]:
+                    # Convert to agraph objects
+                    nodes = [
+                        Node(id=n["id"], label=n.get("label", n["id"]), size=25, shape="dot")
+                        for n in data["nodes"]
+                    ]
+                    edges = [
+                        Edge(source=e["source"], target=e["target"], label=e.get("label", ""))
+                        for e in data["edges"]
+                    ]
+                    
+                    config = Config(
+                        width="100%",
+                        height=600,
+                        directed=True, 
+                        physics=True, 
+                        hierarchical=False,
+                        nodeHighlightBehavior=True,
+                        highlightColor="#F7A7A6",
+                        collapsible=False
                     )
+                    
+                    st.write(f"Displaying {len(nodes)} nodes and {len(edges)} relationships.")
+                    agraph(nodes=nodes, edges=edges, config=config)
+                else:
+                    st.info("No graph data found. Try processing a document with 'GraphRAG' enabled.")
+            else:
+                st.warning("Graph integration is not active. Enable 'ENABLE_GRAPHRAG' in settings.")
 
 
 if __name__ == "__main__":

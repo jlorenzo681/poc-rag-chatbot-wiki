@@ -83,9 +83,9 @@ if docker ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; the
     echo -e "${GREEN}✓ buildx_buildkit_default removed${NC}"
 fi
 
-# Start all services using compose
+# Start all services using compose with project name to avoid state issues
 echo -e "\n${GREEN}Starting development stack (Ollama, Redis, Backend, Worker, Frontend)...${NC}"
-$COMPOSE_CMD up --build -d
+$COMPOSE_CMD -p rag-fresh up --build -d
 
 # Wait for services to be ready
 echo -e "${YELLOW}Waiting for services to start...${NC}"

@@ -31,6 +31,7 @@ dependencies = [
     "langchain-experimental>=0.0.60",
     "neo4j>=5.20.0",
     "json-repair>=0.25.0",
+    "streamlit-agraph>=0.0.45",
 ]
 
 [dependency-groups]

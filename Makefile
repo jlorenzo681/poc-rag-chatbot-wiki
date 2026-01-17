@@ -1,5 +1,8 @@
 # Makefile for RAG Chatbot Project
 
+# Project name for Docker Compose
+PROJECT_NAME := rag-fresh
+
 .PHONY: help build run stop logs clean clean-all clean-images clean-volumes deploy test install dev pull-models
 
 # Default target
