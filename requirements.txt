@@ -771,10 +771,7 @@ langchain-huggingface==0.0.3 \
     --hash=sha256:0637acf484c47323cf3dcc46745a93467f6955989af9b7c01e2382fe1b630aaf \
     --hash=sha256:d6827adf3c7c8fcc0bca8c43c7e900c3bf68af9a1532a83d4b8ace137e02887e
     # via poc-rag-chatbot-wiki
-langchain-ollama==0.1.0 \
-    --hash=sha256:002b9720aed04aca17cbe1448b534126d85ae561a9acb382d000a208c9bf7b89 \
-    --hash=sha256:d549b3ccf565a9ee9f6cfe8cfb8a94976b7fd0f427cd842ba134db7e2bf5b8cf
-    # via poc-rag-chatbot-wiki
+
 langchain-openai==0.1.23 \
     --hash=sha256:8e3d215803e157f26480c6108eb4333629832b1a0e746723060c24f93b8b78f4 \
     --hash=sha256:ed7f16671ea0af177ac5f82d5645a746c5097c56f97b31798e5c07b5c84f0eed
@@ -1292,10 +1289,7 @@ nvidia-nvjitlink-cu12==12.9.86 ; platform_machine == 'x86_64' and sys_platform =
 nvidia-nvtx-cu12==12.1.105 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:dc21cf308ca5691e7c04d962e213f8a4aa9bbfa23d95412f452254c2caeb09e5
     # via torch
-ollama==0.6.1 \
-    --hash=sha256:478c67546836430034b415ed64fa890fd3d1ff91781a9d548b3325274e69d7c6 \
-    --hash=sha256:fc4c984b345735c5486faeee67d8a265214a31cbb828167782dc642ce0a2bf8c
-    # via langchain-ollama
+
 openai==1.109.1 \
     --hash=sha256:6bcaf57086cf59159b8e27447e4e7dd019db5d29a438072fbd49c290c7e65315 \
     --hash=sha256:d173ed8dbca665892a6db099b4a2dfac624f94d20a93f46eb0b56aae940ed869

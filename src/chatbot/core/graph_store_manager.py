@@ -3,7 +3,7 @@ import os
 from typing import List, Optional, Dict, Any
 from langchain_community.graphs import Neo4jGraph
 from .simple_graph_transformer import SimpleGraphTransformer
-from langchain_community.chat_models import ChatOllama
+
 from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 import config.settings as settings
@@ -68,14 +68,7 @@ class GraphStoreManager:
                     temperature=0
                 )
             else:
-                # Use Ollama
-                base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-                print(f"🔧 Using Ollama for Graph Extraction: {base_url}")
-                llm = ChatOllama(
-                    model=settings.DEFAULT_LLM_MODEL,
-                    temperature=0, # Deterministic for extraction
-                    base_url=base_url
-                )
+                 raise ValueError(f"Unsupported LLM provider: {settings.DEFAULT_LLM_PROVIDER}")
             
             # Use our robust custom transformer
             self.llm_transformer = SimpleGraphTransformer(llm=llm)
@@ -176,11 +169,7 @@ class GraphStoreManager:
                         temperature=0
                     )
                 else:
-                    llm = ChatOllama(
-                        model=settings.DEFAULT_LLM_MODEL,
-                        temperature=0,
-                        base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-                    )
+                    raise ValueError(f"Unsupported LLM provider: {settings.DEFAULT_LLM_PROVIDER}")
 
             chain = GraphCypherQAChain.from_llm(
                 llm=llm, 

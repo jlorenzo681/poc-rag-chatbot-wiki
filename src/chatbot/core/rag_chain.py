@@ -5,7 +5,6 @@ Implements the retrieval-augmented generation chain with conversation memory.
 
 from typing import Optional, Dict, Any, Literal, List
 from langchain_core.documents import Document
-from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory, ConversationBufferWindowMemory
@@ -64,10 +63,9 @@ Context: {context}"""
     def __init__(
         self,
         retriever,
-        llm_provider: Literal["ollama", "lmstudio"] = "ollama",
-        ollama_base_url: str = "http://ollama:11434",
+        llm_provider: Literal["lmstudio"] = "lmstudio",
         lmstudio_base_url: str = "http://localhost:1234/v1",
-        model_name: str = "llama3.2:3b",
+        model_name: str = "local-model",
         temperature: float = 0.3,
         max_tokens: int = 500,
         system_prompt: Optional[str] = None
@@ -77,9 +75,8 @@ Context: {context}"""
 
         Args:
             retriever: Vector store retriever
-            llm_provider: LLM provider to use ('ollama', or 'lmstudio')
-            ollama_base_url: Ollama server URL (used if llm_provider='ollama')
-            lmstudio_base_url: LM Studio server URL (used if llm_provider='lmstudio')
+            llm_provider: LLM provider to use ('lmstudio')
+            lmstudio_base_url: LM Studio server URL
             model_name: Name of the LLM model
             temperature: Temperature for response generation (0-1)
             max_tokens: Maximum tokens in response
@@ -99,19 +96,7 @@ Context: {context}"""
         self.llm_provider = llm_provider
 
         # Initialize LLM based on provider
-        if llm_provider == "ollama":
-            self.llm = ChatOllama(
-                base_url=ollama_base_url,
-                model=model_name,
-                temperature=temperature,
-                num_predict=max_tokens,
-                timeout=300.0,  # 5 minutes for CPU-only inference
-            )
-            print(f"🤖 Initialized Ollama LLM: {model_name}")
-            print(f"   Base URL: {ollama_base_url}")
-            print("   ⚠ Using CPU inference - responses may be slow")
-
-        elif llm_provider == "lmstudio":
+        if llm_provider == "lmstudio":
             self.llm = ChatOpenAI(
                 base_url=lmstudio_base_url,
                 api_key="lm-studio",  # LM Studio doesn't require a real API key

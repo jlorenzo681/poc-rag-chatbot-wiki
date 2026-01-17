@@ -25,7 +25,7 @@ DEFAULT_CHUNK_OVERLAP: int = 200
 
 # Embedding Settings
 # Embedding Settings
-DEFAULT_EMBEDDING_TYPE: str = "lmstudio"  # Options: "ollama", "huggingface", "lmstudio", "mlx"
+DEFAULT_EMBEDDING_TYPE: str = "lmstudio"  # Options: "huggingface", "lmstudio", "mlx"
 
 # Dynamic Embedding Models
 EMBEDDING_MODEL_EN: str = "nomic-ai/nomic-embed-text-v1.5-GGUF" # High quality English model (LM Studio)
@@ -39,7 +39,7 @@ NEO4J_USERNAME: str = "neo4j"
 NEO4J_PASSWORD: str = "password"
 
 # LLM Settings
-DEFAULT_LLM_PROVIDER: str = "lmstudio" # Options: "ollama", "lmstudio"
+DEFAULT_LLM_PROVIDER: str = "lmstudio" # Options: "lmstudio"
 DEFAULT_LLM_MODEL: str = "local-model" # LM Studio will auto-detect or user selects
 LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "http://host.docker.internal:1234/v1")
 DEFAULT_TEMPERATURE: float = 0.3

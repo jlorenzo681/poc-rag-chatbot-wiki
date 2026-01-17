@@ -58,7 +58,7 @@ def test_dynamic_embedding_selection():
         else:
             print(f"  ✓ Language detection correct")
 
-        # Test Embedding Selection Logic (not full load to avoid Ollama dependency in pure python test if possible, but VSM loads it)
+        # Test Embedding Selection Logic
         # We check specific logic in _get_embeddings_for_language or by creating a dummy doc
         
         try:

@@ -1,9 +1,9 @@
 #!/bin/bash
-# Stop RAG Chatbot and Ollama containers
+# Stop RAG Chatbot containers
 
 set -e
 
-echo "Stopping RAG Chatbot and Ollama services..."
+echo "Stopping RAG Chatbot services..."
 
 # Compose file
 COMPOSE_FILE="docker-compose.yml"
@@ -19,9 +19,7 @@ else
     # Manual stop - stop both containers
     echo "Stopping containers manually..."
     docker stop rag-chatbot 2>/dev/null || true
-    docker stop ollama 2>/dev/null || true
     docker rm rag-chatbot 2>/dev/null || true
-    docker rm ollama 2>/dev/null || true
 fi
 
 echo "✓ All services stopped"

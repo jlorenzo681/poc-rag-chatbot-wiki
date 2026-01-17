@@ -169,11 +169,10 @@ def process_document(uploaded_file, api_key: str, model_name: str = None) -> tup
         return False, None
 
 
-LLMProvider = Literal["Ollama", "LM Studio"]
-LLMProviderLower = Literal["ollama", "lmstudio"]
+LLMProvider = Literal["LM Studio"]
+LLMProviderLower = Literal["lmstudio"]
 
 PROVIDER_MAP: dict[LLMProvider, LLMProviderLower] = {
-    "Ollama": "ollama",
     "LM Studio": "lmstudio",
 }
 
@@ -181,7 +180,6 @@ PROVIDER_MAP: dict[LLMProvider, LLMProviderLower] = {
 def initialize_chatbot(
     llm_provider: LLMProvider,
     groq_api_key: str,
-    ollama_url: str,
     lmstudio_url: str,
     model_name: str,
     temperature: float,
@@ -190,10 +188,9 @@ def initialize_chatbot(
     Initialize the RAG chatbot.
 
     Args:
-        llm_provider: LLM provider ('Groq', 'Ollama', or 'LM Studio')
-        groq_api_key: Groq API key (if using Groq)
-        ollama_url: Ollama server URL (if using Ollama)
-        lmstudio_url: LM Studio server URL (if using LM Studio)
+        llm_provider: LLM provider ('LM Studio')
+        groq_api_key: Groq API key (unused but kept for signature)
+        lmstudio_url: LM Studio server URL
         model_name: LLM model name
         temperature: Temperature for generation
     """
@@ -208,7 +205,6 @@ def initialize_chatbot(
             rag_chain = RAGChain(
                 retriever=retriever,
                 llm_provider=provider_lower,
-                ollama_base_url=ollama_url,
                 lmstudio_base_url=lmstudio_url,
                 model_name=model_name,
                 temperature=temperature,
@@ -289,7 +285,7 @@ def main() -> None:
         st.divider()
 
         # Provider-specific configuration
-        ollama_url = ""
+
         
         st.warning(
             "⚠️ Make sure LM Studio/Compatible is running in server mode"
@@ -384,7 +380,6 @@ def main() -> None:
                 initialize_chatbot(
                     llm_provider=llm_provider,
                     groq_api_key=api_key,
-                    ollama_url=ollama_url,
                     lmstudio_url=lmstudio_url,
                     model_name=model_name,
                     temperature=temperature
@@ -438,7 +433,7 @@ def main() -> None:
                     initialize_chatbot(
                         llm_provider,
                         "",
-                        ollama_url,
+
                         lmstudio_url,
                         model_name,
                         temperature,
@@ -495,7 +490,7 @@ def main() -> None:
             - **Conversational Memory**: Multi-turn conversations
             - **Source Citations**: See where answers come from
             - **Multiple Formats**: PDF, TXT, Markdown support
-            - **Flexible Models**: Use local LLMs via Ollama or LM Studio
+            - **Flexible Models**: Use local LLMs via LM Studio
             """)
 
     else:

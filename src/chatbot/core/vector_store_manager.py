@@ -9,7 +9,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.embeddings import OllamaEmbeddings
+
 import os
 import hashlib
 import fasttext
@@ -95,7 +95,7 @@ class VectorStoreManager:
         if embedding_type == "huggingface":
             # Use local HuggingFace embeddings (sentence-transformers)
             # Default to a good multilingual model if language is not English, or standard one for English
-            # But specific models in settings might be Ollama-specific names. 
+ 
             # We'll use a standard variable or hardcoded defaults for HF to be safe/simple for now.
             if language_code == 'en':
                 model_name = "sentence-transformers/all-MiniLM-L6-v2"
@@ -129,18 +129,7 @@ class VectorStoreManager:
              )
         
         else:
-            # Default to Ollama
-            if language_code == 'en':
-                model_name = settings.EMBEDDING_MODEL_EN
-                print(f"🔧 Selecting English embedding model: {model_name}")
-            else:
-                model_name = settings.EMBEDDING_MODEL_MULTILINGUAL
-                print(f"🔧 Selecting Multilingual embedding model ({language_code}): {model_name}")
-
-            return OllamaEmbeddings(
-                model=model_name,
-                base_url=os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-            )
+            raise ValueError(f"Unsupported embedding type: {embedding_type}")
 
     def get_file_hash(self, file_path: str) -> str:
         """

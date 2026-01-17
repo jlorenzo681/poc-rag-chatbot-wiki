@@ -1,354 +1,140 @@
-# Document Q&A Chatbot (RAG System)
+# Local RAG Chatbot with GraphRAG & Decoupled Architecture
 
-A production-ready Retrieval-Augmented Generation (RAG) chatbot that enables intelligent Q&A over your documents using LangChain, Groq, and Streamlit.
+A production-ready, fully local Retrieval-Augmented Generation (RAG) system featuring a decoupled microservices architecture, visual knowledge graph, and event-driven communication.
 
-## Features
+## 🚀 Features
+
+- **100% Local Privacy**: Runs entirely on your machine using [LM Studio](https://lmstudio.ai/). No API keys required.
+- **Microservices Architecture**:
+  - **Frontend**: Streamlit-based interactive UI.
+  - **Backend**: FastAPI for robust API endpoints.
+  - **Worker**: Celery (with Redis) for asynchronous document processing.
+- **GraphRAG**: Visual knowledge graph construction and visualization using Neo4j and Streamlit-Agraph.
+- **Event-Driven**: Internal Event Bus for state management and decoupled component communication.
+- **Hybrid Support**: Switch between Vector Search and Graph Exploration.
+- **Observability**: Built-in support for multiple embedding models and hot-swappable LLM providers.
 
-- **Multiple Document Formats**: Support for PDF, TXT, and Markdown files
-- **Conversational Memory**: Multi-turn conversations with context retention
-- **Source Citations**: View which document chunks informed each answer
-- **Flexible Embeddings**: Choose between OpenAI embeddings or free local HuggingFace models
-- **Interactive Web Interface**: Built with Streamlit for easy deployment
-- **Modular Architecture**: Clean separation of concerns for easy customization
+## 🏗 Architecture
 
-## Architecture
+The system consists of the following containerized services:
 
-The system consists of four main components:
+1.  **rag-chatbot** (Frontend): Streamlit UI for uploading documents, chatting, and viewing the knowledge graph.
+2.  **backend** (API): FastAPI service handling file uploads, retrieval logic, and task orchestration.
+3.  **celery_worker** (Processing): Background worker for parsing PDF/TXT/MD files and generating embeddings.
+4.  **redis** (Message Broker & Cache): Handles Celery task queues and caches vector stores.
+5.  **neo4j** (Graph Database): Stores extracted entities and relationships for knowledge graph visualization.
 
-1. **Document Processor** (`document_processor.py`): Loads and chunks documents into manageable pieces
-2. **Vector Store Manager** (`vector_store_manager.py`): Creates and manages embeddings and vector search
-3. **RAG Chain** (`rag_chain.py`): Implements retrieval and generation logic with conversation memory
-4. **Web Interface** (`app.py`): Streamlit-based user interface
-5. **Event Bus** (`event_bus.py`): Central communication system for decoupling components
+## 🛠 Prerequisites
 
-## Installation
+- **Docker Desktop** (must be running)
+- **LM Studio** (installed on your host machine)
+- **Python 3.10+** (for local development)
+- **Make** (optional, for easy commands)
 
-### Prerequisites
+## ⚡ Quick Start (Docker)
 
-- Python 3.10 or higher
-- Groq API key (get it from https://console.groq.com/keys)
-- Optional: OpenAI API key (only for OpenAI embeddings)
-- Optional: Docker (for containerized deployment)
+1.  **Clone the Repository**
+    ```bash
+    git clone <your-repo-url>
+    cd poc-rag-chatbot-wiki
+    ```
 
-### Quick Start
+2.  **Configure Environment**
+    ```bash
+    cp .env.example .env
+    # The default settings allow connecting to host-based LM Studio.
+    ```
 
-#### Local Development
+3.  **Start LLM Server**
+    - **LM Studio**: Start the Local Inference Server (default port 1234).
 
-1. Clone the repository:
-```bash
-git clone <your-repo-url>
-cd poc-rag-chatbot-wiki
-```
+4.  **Deploy Application**
+    ```bash
+    make deploy
+    # Or: ./scripts/deploy.sh
+    ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+5.  **Access the App**
+    Open your browser to: http://localhost:8501
 
-3. Create a `.env` file:
-```bash
-cp .env.example .env
-```
+## 🖥 Local Development
 
-Edit `.env` and add your Groq API key:
-```
-GROQ_API_KEY=your-api-key-here
-```
+For developing individual components without Docker containers:
 
-#### Containerized Deployment (Docker)
+1.  **Install Dependencies**
+    ```bash
+    make install
+    # or
+    pip install -r requirements.txt
+    ```
 
-For production deployment with Docker:
+2.  **Start Infrastructure (Redis & Neo4j)**
+    You still need Redis and Neo4j running. You can use Docker for just these:
+    ```bash
+    docker run -d -p 6379:6379 redis:7-alpine
+    docker run -d -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/password -e NEO4J_PLUGINS='["apoc"]' neo4j:5.11
+    ```
 
-```bash
-# 1. Set up environment
-cp .env.example .env
-nano .env  # Add your GROQ_API_KEY
+3.  **Start Components** (in separate terminals)
 
-# 2. Deploy with one command
-make deploy
-```
+    **Terminal 1: Backend**
+    ```bash
+    uvicorn src.backend.main:app --reload --port 8000
+    ```
 
-**See [DEPLOYMENT.md](DEPLOYMENT.md) for the complete deployment guide.**
+    **Terminal 2: Worker**
+    ```bash
+    celery -A src.backend.celery_config worker --loglevel=info
+    ```
 
-## Usage
+    **Terminal 3: Frontend**
+    ```bash
+    streamlit run app.py
+    ```
 
-### Running the Web Interface
+## ⚙️ Configuration
 
-Start the Streamlit app:
+Key settings in `.env`:
 
-```bash
-streamlit run app.py
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
 
-The app will open in your browser at `http://localhost:8501`
+| `LLM_BASE_URL` | URL for LM Studio | `http://host.docker.internal:1234/v1` |
+| `REDIS_URL` | Redis connection string | `redis://redis:6379/0` (Docker) |
+| `NEO4J_URI` | Neo4j Bolt URI | `bolt://neo4j:7687` |
+| `ENABLE_GRAPHRAG`| Enable Graph features | `True` |
 
-### Using the Web Interface
-
-1. **Enter API Key**: Paste your Groq API key in the sidebar
-2. **Upload Document**: Choose a PDF, TXT, or Markdown file
-3. **Configure Settings**: Select your preferred model and temperature
-4. **Process Document**: Click the "Process Document" button
-5. **Ask Questions**: Start chatting with your document!
-
-### Using the CLI Example
-
-For command-line usage, see `example_usage.py`:
-
-```bash
-python example_usage.py
-```
-
-## Configuration Options
-
-### Embedding Models
-
-- **OpenAI** (`text-embedding-3-small`): High quality, requires API key
-- **HuggingFace** (`all-MiniLM-L6-v2`): Free, runs locally, lower quality
-
-
-### Parameters
-
-- **Chunk Size**: 1000 characters (adjustable in `document_processor.py`)
-- **Chunk Overlap**: 200 characters (preserves context at boundaries)
-- **Retrieval K**: 4 documents (top results to retrieve)
-- **Temperature**: 0.3 (lower = more focused, higher = more creative)
-
-## Module Documentation
-
-### DocumentProcessor
-
-Handles document loading and text chunking:
-
-```python
-from document_processor import DocumentProcessor
-
-processor = DocumentProcessor(chunk_size=1000, chunk_overlap=200)
-chunks = processor.process_document("path/to/document.pdf")
-```
-
-**Supported formats**: PDF, TXT, MD, URLs
-
-### VectorStoreManager
-
-Manages embeddings and vector storage:
-
-```python
-from vector_store_manager import VectorStoreManager
-
-# Using OpenAI embeddings
-manager = VectorStoreManager(
-    embedding_type="openai",
-    openai_api_key="your-key"
-)
-
-# Or using free HuggingFace embeddings
-manager = VectorStoreManager(
-    embedding_type="huggingface",
-    model_name="all-MiniLM-L6-v2"
-)
-
-# Create and save vector store
-manager.create_vector_store(chunks)
-manager.save_vector_store("faiss_index")
-```
-
-### RAGChain
-
-Implements retrieval and generation:
-
-```python
-from rag_chain import RAGChain, RAGChatbot
-
-# Create RAG chain
-rag_chain = RAGChain(
-    retriever=retriever,
-    groq_api_key="your-key",
-    model_name="llama3.2:3b",
-    temperature=0.3
-)
-
-# Create conversational chain with memory
-chain = rag_chain.create_conversational_chain(memory_type="buffer")
-
-# Create chatbot interface
-chatbot = RAGChatbot(chain, return_sources=True)
-response = chatbot.ask("What is this document about?")
-```
-
-### EventBus
-
-Implements a lightweight, synchronous event system for decoupled communication:
-
-```python
-from chatbot.core.event_bus import EventBus, ErrorEvent
-
-# 1. Subscribe to events
-def on_error(event: ErrorEvent):
-    print(f"Alert: {event.message}")
-
-bus = EventBus()
-bus.subscribe(ErrorEvent, on_error)
-
-# 2. Publish events
-bus.publish(ErrorEvent(error_type="Validation", message="File too large"))
-```
-
-**Key Components**:
-- **Singleton Pattern**: Ensures one global event bus instance
-- **Typed Events**: Dataclasses for `DocumentUploadEvent`, `ProcessingStartEvent`, `ErrorEvent`, etc.
-- **Polymorphic Dispatch**: Subscribers receive events of the subscribed type and its subclasses
-
-#### Hybrid Architecture (Redis + In-Memory)
-The system implements a **Hybrid Event Architecture** to balance performance and scalability:
-
-- **In-Memory (Synchronous)**: Used for UI updates and instant feedback. Guaranteed sub-millisecond latency.
-- **Redis Pub/Sub Event Driven (Asynchronous)**: Used for heavy background tasks (document processing) and cross-process communication.
-
-**Configuration**:
-Set `REDIS_URL` in your `.env` to enable hybrid mode:
-```env
-REDIS_URL=redis://localhost:6379/0
-```
-If `REDIS_URL` is missing, the system gracefully degrades to purely in-memory mode (Monolithic).
-
-
-## Example Use Cases
-
-### Research Assistant
-Upload academic papers and ask questions about methodology, results, and conclusions.
-
-### Technical Documentation Helper
-Load API documentation or technical manuals and query for specific implementation details.
-
-### Legal Document Analysis
-Upload contracts or legal documents and extract key terms and clauses.
-
-### Quick home test: Coffee Equipment Knowledge Base
-
-Upload all your coffee equipment specs, brewing guides, and recipes, then ask:
-- "What's the optimal brew ratio for my Comandante C40?"
-- "Compare thermal properties of different drippers"
-- "What water temperature should I use with my grinder?"
-
-## Advanced Features
-
-### Custom System Prompts
-
-Modify the system prompt in `rag_chain.py` or pass a custom one:
-
-```python
-custom_prompt = """You are an expert coffee consultant...
-Context: {context}"""
-
-rag_chain = RAGChain(
-    retriever=retriever,
-    groq_api_key=api_key,
-    system_prompt=custom_prompt
-)
-```
-
-### Different Memory Types
-
-```python
-# Buffer memory (full history)
-chain = rag_chain.create_conversational_chain(memory_type="buffer")
-
-# Window memory (last N turns only)
-chain = rag_chain.create_conversational_chain(
-    memory_type="window",
-    window_size=5
-)
-```
-
-### Loading Existing Vector Stores
-
-```python
-# For OpenAI embeddings (if used)
-manager = VectorStoreManager(embedding_type="openai", openai_api_key=key)
-manager.load_vector_store("faiss_index")
-
-# For HuggingFace embeddings (free)
-manager = VectorStoreManager(embedding_type="huggingface")
-manager.load_vector_store("faiss_index")
-```
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 poc-rag-chatbot-wiki/
-├── src/                       # Source code package
-│   └── chatbot/              # Main chatbot package
-│       ├── core/             # Core functionality modules
-│       │   ├── __init__.py
-│       │   ├── document_processor.py     # Document loading and chunking
-│       │   ├── vector_store_manager.py   # Embeddings and vector storage
-│       │   └── rag_chain.py             # RAG chain implementation
-│       ├── utils/            # Utility functions
-│       │   └── __init__.py
-│       └── __init__.py
-├── config/                   # Configuration files
-│   ├── __init__.py
-│   └── settings.py          # Application settings and constants
-├── data/                    # Data directory (gitignored)
-│   ├── documents/          # Uploaded documents storage
-│   └── vector_stores/      # Saved vector store indices
-├── logs/                   # Application logs (gitignored)
-├── tests/                  # Test files (future)
-├── app.py                 # Streamlit web interface
-├── example_usage.py       # CLI usage examples
-├── requirements.txt       # Python dependencies
-├── .env.example          # Environment variables template
-├── .gitignore           # Git ignore rules
-└── README.md            # This file
+├── src/
+│   ├── backend/              # FastAPI Application & Celery Tasks
+│   └── chatbot/              # Core Logic (RAG, Events, Graph)
+├── config/                   # Configuration settings
+├── data/                     # Data storage (gitignored)
+├── scripts/                  # Helper scripts (build, deploy, clean)
+├── app.py                    # Streamlit Frontend
+├── docker-compose.yml        # Docker Services Definition
+├── Makefile                  # Setup & Run Commands
+└── requirements.txt          # Python Dependencies
 ```
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
-### Common Issues
+**"Connection refused" to LM Studio?**
+Ensure your local LLM server is allowing external connections or listen on `0.0.0.0`. For Docker on Mac/Windows, `host.docker.internal` is used to reach the host.
 
-**API Key Errors**
-- Ensure your Groq API key is valid and active
-- Get your free Groq API key at https://console.groq.com/keys
+**Graph not showing?**
+Ensure Neo4j is running and the `ENABLE_GRAPHRAG` setting is True. You may need to "Start Over" and re-process the document to populate the graph.
 
-**Memory Issues with Large Documents**
-- Reduce chunk size
-- Use HuggingFace embeddings instead of OpenAI
-- Process documents in smaller batches
+**Worker not picking up tasks?**
+Check Redis connectivity and ensure the `celery_worker` container is healthy.
 
-**Slow Performance**
-- Use `llama3-8b-8192` for faster responses
-- Reduce the retrieval K value
-- Use HuggingFace embeddings for local, free processing
+## 🤝 Contributing
 
-## Performance Tips
+Contributions are welcome! Please open an issue or submit a Pull Request.
 
-1. **Chunking Strategy**: The default 1000/200 split balances quality and performance
-2. **Retrieval K**: 4 documents is usually optimal; more isn't always better
-3. **Temperature**: Use 0.1-0.3 for factual Q&A, 0.5-0.7 for creative tasks
-4. **Embeddings**: OpenAI embeddings are higher quality but cost per token; HuggingFace is free but slower on CPU
+## 📄 License
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Built with [LangChain](https://www.langchain.com/)
-- Powered by [Groq](https://groq.com/) for ultra-fast LLM inference
-- UI created with [Streamlit](https://streamlit.io/)
-- Vector search using [FAISS](https://github.com/facebookresearch/faiss)
-
-## Resources
-
-- [LangChain Documentation](https://python.langchain.com/)
-- [Groq Documentation](https://console.groq.com/docs)
-- [Streamlit Documentation](https://docs.streamlit.io/)
-- [RAG Tutorial](https://python.langchain.com/docs/tutorials/rag/)
-
-## Contact
-
-For questions or feedback, please open an issue on GitHub.
+This project is licensed under the MIT License.

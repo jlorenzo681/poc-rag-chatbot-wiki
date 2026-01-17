@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
             echo -e "${YELLOW}Unknown option: $1${NC}"
             echo "Usage: $0 [--images] [--volumes] [--all]"
             echo "  --images   Remove images too"
-            echo "  --volumes  Remove volumes too (Ollama models)"
+            echo "  --volumes  Remove volumes too"
             echo "  --all      Remove everything (images + volumes)"
             exit 1
             ;;
@@ -67,12 +67,6 @@ else
         echo -e "${GREEN}✓ rag-chatbot container removed${NC}"
     fi
 
-    if docker ps -a | grep -q ollama; then
-        docker stop ollama 2>/dev/null || true
-        docker rm ollama 2>/dev/null || true
-        echo -e "${GREEN}✓ ollama container removed${NC}"
-    fi
-
     if docker ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; then
         docker stop buildx_buildkit_default >/dev/null 2>&1 || true
         docker rm buildx_buildkit_default >/dev/null 2>&1 || true
@@ -90,13 +84,6 @@ if [ "$REMOVE_IMAGES" = true ]; then
     else
         echo -e "${YELLOW}⚠ rag-chatbot image not found${NC}"
     fi
-
-    if docker image inspect docker.io/ollama/ollama:latest >/dev/null 2>&1; then
-        docker rmi docker.io/ollama/ollama:latest 2>/dev/null || true
-        echo -e "${GREEN}✓ Ollama image removed${NC}"
-    else
-        echo -e "${YELLOW}⚠ Ollama image not found${NC}"
-    fi
 else
     echo -e "\n${YELLOW}⚠ Images kept (use --images flag to remove)${NC}"
 fi
@@ -105,13 +92,6 @@ fi
 if [ "$REMOVE_VOLUMES" = true ]; then
     echo -e "\n${YELLOW}Removing volumes...${NC}"
 
-    if docker volume inspect ollama-data >/dev/null 2>&1; then
-        docker volume rm ollama-data 2>/dev/null || true
-        echo -e "${GREEN}✓ Ollama data volume removed${NC}"
-    else
-        echo -e "${YELLOW}⚠ Ollama data volume not found${NC}"
-    fi
-
     if docker volume inspect poc-rag-chatbot-wiki_hf-cache >/dev/null 2>&1; then
         docker volume rm poc-rag-chatbot-wiki_hf-cache 2>/dev/null || true
         echo -e "${GREEN}✓ HuggingFace cache volume removed${NC}"
@@ -119,7 +99,7 @@ if [ "$REMOVE_VOLUMES" = true ]; then
         echo -e "${YELLOW}⚠ HuggingFace cache volume not found${NC}"
     fi
 else
-    echo -e "\n${YELLOW}⚠ Volumes kept (use --volumes flag to remove Ollama models)${NC}"
+    echo -e "\n${YELLOW}⚠ Volumes kept (use --volumes flag to remove)${NC}"
 fi
 
 # Remove networks if they exist and have no containers
@@ -141,11 +121,11 @@ echo ""
 echo "Remaining resources:"
 echo ""
 echo "Containers:"
-docker ps -a | grep -E 'CONTAINER|rag-chatbot|ollama' || echo "  None"
+docker ps -a | grep -E 'CONTAINER|rag-chatbot' || echo "  None"
 echo ""
 echo "Images:"
-docker images | grep -E 'REPOSITORY|rag-chatbot|ollama' || echo "  None"
+docker images | grep -E 'REPOSITORY|rag-chatbot' || echo "  None"
 echo ""
 echo "Volumes:"
-docker volume ls | grep -E 'DRIVER|ollama-data' || echo "  None"
+docker volume ls | grep -E 'DRIVER' || echo "  None"
 echo ""

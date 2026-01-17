@@ -1,69 +1,28 @@
 # Deployment Scripts
 
-This directory contains scripts for managing the RAG Chatbot deployment with Podman.
+This directory contains scripts for managing the RAG Chatbot deployment with Docker/Podman.
 
 ## Available Scripts
 
 ### `deploy.sh`
-Deploy the RAG Chatbot with both rag-chatbot and Ollama services using docker-compose.
+Deploy the RAG Chatbot service using docker-compose.
 
 ```bash
 # Basic deployment
 ./scripts/deploy.sh
-
-# Deploy and pull all Ollama models
-./scripts/deploy.sh --pull-models
-
-# Deploy and pull a specific model
-./scripts/deploy.sh --pull-model llama3.2:3b
 ```
 
-**Options:**
-- `--pull-models` - Pull all available Ollama models after deployment
-- `--pull-model MODEL` - Pull a specific Ollama model (e.g., llama3.2:3b)
-
 ### `dev.sh`
-Start development mode with hot reload for code changes while using compose for Ollama.
+Start development mode with hot reload for code changes.
 
 ```bash
 # Basic dev mode
 ./scripts/dev.sh
-
-# Dev mode with model pulling
-./scripts/dev.sh --pull-models
-
-# Dev mode with specific model
-./scripts/dev.sh --pull-model llama3.2:3b
 ```
 
 **Features:**
 - Hot reload for `app.py`, `src/`, `config/`, and `.streamlit/`
-- Uses docker-compose for Ollama service
 - Development container connected to compose network
-
-**Options:**
-- `--pull-models` - Pull all available Ollama models after starting
-- `--pull-model MODEL` - Pull a specific Ollama model
-
-### `pull-ollama-models.sh`
-Pull Ollama models that are available in the app's model selector.
-
-```bash
-# Pull all models
-./scripts/pull-ollama-models.sh --all
-
-# Pull specific models
-./scripts/pull-ollama-models.sh llama3.2:3b mistral:latest
-
-# Pull single model
-./scripts/pull-ollama-models.sh llama3.2:3b
-```
-
-**Available Models:**
-- `deepseek-r1:8b` (~5.2 GB)
-- `llama3.2:3b` (~2.0 GB)
-
-**Note:** The Ollama container must be running before pulling models.
 
 ### `build.sh`
 Build the RAG Chatbot container image.
@@ -73,7 +32,7 @@ Build the RAG Chatbot container image.
 ```
 
 ### `stop.sh`
-Stop all services (rag-chatbot and Ollama).
+Stop all services.
 
 ```bash
 ./scripts/stop.sh
@@ -85,12 +44,6 @@ View container logs.
 ```bash
 # View rag-chatbot logs (default)
 ./scripts/logs.sh
-
-# View Ollama logs
-./scripts/logs.sh ollama
-
-# View all logs (requires podman-compose)
-./scripts/logs.sh all
 ```
 
 ### `clean.sh`
@@ -103,7 +56,7 @@ Clean up containers, images, volumes, and networks.
 # Remove containers and images
 ./scripts/clean.sh --images
 
-# Remove containers and volumes (Ollama models)
+# Remove containers and volumes
 ./scripts/clean.sh --volumes
 
 # Remove everything
@@ -112,7 +65,7 @@ Clean up containers, images, volumes, and networks.
 
 **Options:**
 - `--images` - Also remove container images
-- `--volumes` - Also remove volumes (this will delete Ollama models!)
+- `--volumes` - Also remove volumes
 - `--all` - Remove everything (images + volumes)
 
 ## Quick Start
@@ -121,25 +74,22 @@ Clean up containers, images, volumes, and networks.
    ```bash
    # Create .env file
    cp .env.example .env
-   # Edit .env and add your GROQ_API_KEY
+   # Edit .env and add your configuration
 
-   # Deploy and pull default model
-   ./scripts/deploy.sh --pull-model llama3.2:3b
+   # Deploy
+   ./scripts/deploy.sh
    ```
 
 2. **Development:**
    ```bash
    # Start dev mode with hot reload
-   ./scripts/dev.sh --pull-model llama3.2:3b
+   ./scripts/dev.sh
    ```
 
 3. **View logs:**
    ```bash
    # Watch application logs
    ./scripts/logs.sh
-
-   # Watch Ollama logs
-   ./scripts/logs.sh ollama
    ```
 
 4. **Stop services:**
@@ -149,22 +99,14 @@ Clean up containers, images, volumes, and networks.
 
 ## Architecture
 
-All scripts now use `docker-compose.yml` to manage both services:
+Scripts use `docker-compose.yml` to manage the services.
 - **rag-chatbot**: Streamlit web application
-- **ollama**: Local LLM inference server
-
-Both containers are on the same network (`poc-rag-chatbot-wiki_rag-network`) and can communicate via hostname resolution.
+- **backend**: FastAPI backend service
+- **celery_worker**: Asynchronous task worker
+- **redis**: Message broker and cache
+- **neo4j**: Graph database
 
 ## Troubleshooting
-
-**Ollama connection refused:**
-- Ensure both containers are running: `docker ps`
-- Check they're on the same network: `docker network inspect poc-rag-chatbot-wiki_rag-network`
-- Restart with compose: `./scripts/stop.sh && ./scripts/deploy.sh`
-
-**Models not found:**
-- Pull models: `./scripts/pull-ollama-models.sh llama3.2:3b`
-- List models: `docker exec ollama ollama list`
 
 **Network issues:**
 - Always use `./scripts/deploy.sh` or `docker-compose up -d` to start services

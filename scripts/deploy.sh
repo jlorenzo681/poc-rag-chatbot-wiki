@@ -14,25 +14,11 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Parse flags
-PULL_MODELS=false
-MODEL_TO_PULL=""
-
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --pull-models)
-            PULL_MODELS=true
-            shift
-            ;;
-        --pull-model)
-            PULL_MODELS=true
-            MODEL_TO_PULL="$2"
-            shift 2
-            ;;
         *)
             echo -e "${YELLOW}Unknown option: $1${NC}"
-            echo "Usage: $0 [--pull-models] [--pull-model MODEL_NAME]"
-            echo "  --pull-models           Pull all Ollama models after deployment"
-            echo "  --pull-model MODEL      Pull specific Ollama model (e.g., llama3.2:3b)"
+            echo "Usage: $0"
             exit 1
             ;;
     esac
@@ -104,7 +90,7 @@ if docker ps -a --format "{{.Names}}" | grep -q "^buildx_buildkit_default$"; the
 fi
 
 # Start all services using compose
-echo -e "\n${GREEN}Starting RAG Chatbot and Ollama services...${NC}"
+echo -e "\n${GREEN}Starting services...${NC}"
 $COMPOSE_CMD up -d
 
 # Wait for application to start
@@ -112,47 +98,27 @@ echo -e "\n${YELLOW}Waiting for application to start...${NC}"
 sleep 5
 
 # Check if containers are running
-if docker ps | grep -q rag-chatbot && docker ps | grep -q ollama; then
+# Check if containers are running
+if docker ps | grep -q rag-chatbot; then
     echo -e "\n${GREEN}======================================"
     echo "✓ Deployment successful!"
     echo "======================================${NC}"
     echo ""
     echo "Services running:"
     echo "  - RAG Chatbot: http://localhost:8501"
-    echo "  - Ollama:      http://localhost:11434"
     echo ""
     echo "Useful commands:"
     echo "  View logs:           docker logs -f rag-chatbot"
-    echo "  View ollama logs:    docker logs -f ollama"
     echo "  Stop all:            $COMPOSE_CMD down"
     echo "  Restart all:         $COMPOSE_CMD restart"
     echo "  Container status:    $COMPOSE_CMD ps"
-    echo "  Pull ollama models:  ./scripts/pull-ollama-models.sh [--all|model_name]"
     echo ""
 
-    # Pull Ollama models if requested
-    if [ "$PULL_MODELS" = true ]; then
-        echo -e "${YELLOW}Waiting for Ollama to be fully ready...${NC}"
-        sleep 5
-
-        if [ -n "$MODEL_TO_PULL" ]; then
-            echo -e "${GREEN}Pulling Ollama model: $MODEL_TO_PULL${NC}"
-            ./scripts/pull-ollama-models.sh "$MODEL_TO_PULL"
-        else
-            echo -e "${GREEN}Pulling all Ollama models...${NC}"
-            ./scripts/pull-ollama-models.sh --all
-        fi
-    else
-        echo -e "${YELLOW}Note: No Ollama models pulled. To pull models, run:${NC}"
-        echo "  ./scripts/pull-ollama-models.sh --all"
-        echo "  or: ./scripts/pull-ollama-models.sh llama3.2:3b"
-    fi
 else
     echo -e "\n${RED}======================================"
     echo "✗ Deployment failed!"
     echo "======================================${NC}"
     echo "Check logs with:"
     echo "  docker logs rag-chatbot"
-    echo "  docker logs ollama"
     exit 1
 fi
