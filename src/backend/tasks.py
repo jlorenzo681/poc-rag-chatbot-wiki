@@ -42,15 +42,14 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
         # 5. Graph Extraction (if enabled)
         if getattr(settings, "ENABLE_GRAPHRAG", False):
             # Check cache using Manager (Clean Architecture)
-            # User request: Force extraction to ensure model loading
-            # if graph_manager.check_cache(file_hash):
-            #      self.update_state(state='PROGRESS', meta={'status': 'Graph data already cached. Skipping extraction.'})
-            #      print("✓ Graph data already cached. Skipping extraction.")
-            # else:
-            self.update_state(state='PROGRESS', meta={'status': f'Extracting Graph data (this may take a while)...'})
-            graph_manager.add_documents_to_graph(chunks)
-            # Mark completion
-            graph_manager.mark_as_completed(file_hash)
+            if graph_manager.check_cache(file_hash):
+                self.update_state(state='PROGRESS', meta={'status': 'Graph data already cached. Skipping extraction.'})
+                print("✓ Graph data already cached. Skipping extraction.")
+            else:
+                self.update_state(state='PROGRESS', meta={'status': f'Extracting Graph data (this may take a while)...'})
+                graph_manager.add_documents_to_graph(chunks)
+                # Mark completion
+                graph_manager.mark_as_completed(file_hash)
         
         return {
             "status": "completed", 

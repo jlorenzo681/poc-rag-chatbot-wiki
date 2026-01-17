@@ -75,6 +75,8 @@ def initialize_session_state() -> None:
         st.session_state.last_model_name = None
     if "last_llm_provider" not in st.session_state:
         st.session_state.last_llm_provider = None
+    if "processing_document" not in st.session_state:
+        st.session_state.processing_document = False
     
     if "event_bus" not in st.session_state:
         st.session_state.event_bus = EventBus()
@@ -431,12 +433,18 @@ def main() -> None:
             if st.button(
                 "🚀 Process Document",
                 use_container_width=True,
-                disabled=st.session_state.document_processed,
+                disabled=st.session_state.document_processed or st.session_state.processing_document,
             ):
+                # Set processing flag to disable button
+                st.session_state.processing_document = True
+                
                 # Process document via API (No local save needed here, API handles it)
                 success, file_hash = process_document(
                     uploaded_file, "", model_name=model_name
                 )
+                
+                # Clear processing flag
+                st.session_state.processing_document = False
 
                 if success:
                     # Initialize chatbot
@@ -551,14 +559,13 @@ def main() -> None:
             # Check if graph manager is available
             graph_manager = None
             try:
-                # Navigating: Chatbot -> Chain -> Retriever -> GraphManager
-                # Note: This depends on the exact structure of the chain
-                if hasattr(st.session_state.chatbot.chain, "retriever"):
-                    retriever = st.session_state.chatbot.chain.retriever
-                    if hasattr(retriever, "graph_manager"):
-                        graph_manager = retriever.graph_manager
-            except Exception:
-                pass
+                # GraphRAG stores graph_manager on the RAGChain instance
+                if hasattr(st.session_state.chatbot, 'chain'):
+                    chain = st.session_state.chatbot.chain
+                    if hasattr(chain, 'graph_manager'):
+                        graph_manager = chain.graph_manager
+            except Exception as e:
+                st.error(f"Error accessing graph manager: {e}")
                 
             if graph_manager:
                 with st.spinner("Fetching graph data..."):
@@ -591,7 +598,7 @@ def main() -> None:
                 else:
                     st.info("No graph data found. Try processing a document with 'GraphRAG' enabled.")
             else:
-                st.warning("Graph integration is not active. Enable 'ENABLE_GRAPHRAG' in settings.")
+                st.warning("⚠️ Graph manager not initialized. Click '🔄 Start Over' in the sidebar and re-process your document to enable graph visualization.")
 
 
 if __name__ == "__main__":

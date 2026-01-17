@@ -1,7 +1,8 @@
-# Containerfile for RAG Chatbot
+# syntax=docker/dockerfile:1.4
+# Containerfile for RAG Chatbot - Optimized for fast builds
 # Compatible with Podman and Docker
 
-FROM docker.io/library/python:3.11-slim
+FROM docker.io/library/python:3.11-slim AS base
 
 # Set working directory
 WORKDIR /app
@@ -14,26 +15,38 @@ ENV PYTHONUNBUFFERED=1 \
     TRANSFORMERS_CACHE=/app/.cache/huggingface \
     HF_HOME=/app/.cache/huggingface
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies in a single layer
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# ============================================
+# Dependencies stage - cached separately
+# ============================================
+FROM base AS dependencies
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with pip cache mount
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
 
+# Pre-download HuggingFace model for offline use
+RUN --mount=type=cache,target=/app/.cache/huggingface \
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
+# ============================================
+# Final stage - application code
+# ============================================
+FROM dependencies AS final
 
 # Create necessary directories
 RUN mkdir -p data/documents data/vector_stores logs /app/.cache/huggingface
-
-# Pre-download HuggingFace model for offline use
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 # Copy only essential application code (not everything)
 COPY app.py .

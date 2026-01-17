@@ -85,7 +85,7 @@ fi
 
 # Start all services using compose with project name to avoid state issues
 echo -e "\n${GREEN}Starting development stack (Ollama, Redis, Backend, Worker, Frontend)...${NC}"
-$COMPOSE_CMD -p rag-fresh up --build -d
+DOCKER_BUILDKIT=1 $COMPOSE_CMD -p rag-fresh up --build -d
 
 # Wait for services to be ready
 echo -e "${YELLOW}Waiting for services to start...${NC}"

@@ -606,6 +606,10 @@ idna==3.11 \
     #   httpx
     #   requests
     #   yarl
+isodate==0.7.2 ; python_full_version < '3.11' \
+    --hash=sha256:28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15 \
+    --hash=sha256:4cd1aa0f43ca76f4a6c6c0292a85f40b35ec2e43e315b59f06e6d32171a953e6
+    # via rdflib
 jinja2==3.1.6 \
     --hash=sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d \
     --hash=sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67
@@ -1198,11 +1202,15 @@ neo4j==6.1.0 \
 networkx==3.4.2 ; python_full_version < '3.11' \
     --hash=sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1 \
     --hash=sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f
-    # via torch
+    # via
+    #   streamlit-agraph
+    #   torch
 networkx==3.6 ; python_full_version >= '3.11' \
     --hash=sha256:285276002ad1f7f7da0f7b42f004bcba70d381e936559166363707fdad3d72ad \
     --hash=sha256:cdb395b105806062473d3be36458d8f1459a4e4b98e236a66c3a48996e07684f
-    # via torch
+    # via
+    #   streamlit-agraph
+    #   torch
 numpy==1.26.4 \
     --hash=sha256:03a8c78d01d9781b28a6989f6fa1bb2c4f2d51201cf99d3dd875df6fbd96b23b \
     --hash=sha256:08beddf13648eb95f8d867350f6a018a4be2e5ad54c8d8caed89ebca558b2818 \
@@ -1797,6 +1805,10 @@ pygments==2.19.2 \
     --hash=sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887 \
     --hash=sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b
     # via rich
+pyparsing==3.3.1 \
+    --hash=sha256:023b5e7e5520ad96642e2c6db4cb683d3970bd640cdf7115049a6e9c3682df82 \
+    --hash=sha256:47fad0f17ac1e2cad3de3b458570fbc9b03560aa029ed5e16ee5554da9a2251c
+    # via rdflib
 pypdf==4.3.1 \
     --hash=sha256:64b31da97eda0771ef22edb1bfecd5deee4b72c3d1736b7df2689805076d6418 \
     --hash=sha256:b2f37fe9a3030aa97ca86067a56ba3f9d3565f9a791b305c7355d8392c30d91b
@@ -1889,6 +1901,10 @@ pyyaml==6.0.3 \
     #   langchain-community
     #   langchain-core
     #   transformers
+rdflib==7.5.0 \
+    --hash=sha256:663083443908b1830e567350d72e74d9948b310f827966358d76eebdc92bf592 \
+    --hash=sha256:b011dfc40d0fc8a44252e906dcd8fc806a7859bc231be190c37e9568a31ac572
+    # via streamlit-agraph
 redis==7.1.0 \
     --hash=sha256:23c52b208f92b56103e17c5d06bdc1a6c2c0b3106583985a76a18f83b265de2b \
     --hash=sha256:b1cc3cfa5a2cb9c2ab3ba700864fb0ad75617b41f01352ce5779dabf6d5f9c3c
@@ -2398,6 +2414,12 @@ starlette==0.50.0 \
 streamlit==1.39.0 \
     --hash=sha256:a359fc54ed568b35b055ff1d453c320735539ad12e264365a36458aef55a5fba \
     --hash=sha256:fef9de7983c4ee65c08e85607d7ffccb56b00482b1041fa62f90e4815d39df3a
+    # via
+    #   poc-rag-chatbot-wiki
+    #   streamlit-agraph
+streamlit-agraph==0.0.45 \
+    --hash=sha256:38e7271ffd76a6769968c2e9dfc16cbac7621d62be15af98b62598e1446bee2f \
+    --hash=sha256:b2b7cf1ad0a40dc906de50792b27f2878b0e186603cb3bc958ed78ca7e469cdd
     # via poc-rag-chatbot-wiki
 sympy==1.14.0 \
     --hash=sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517 \
