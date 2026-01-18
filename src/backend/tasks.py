@@ -47,9 +47,10 @@ def process_document_task(self, file_path: str, api_key: str, embedding_type: st
                 print("✓ Graph data already cached. Skipping extraction.")
             else:
                 self.update_state(state='PROGRESS', meta={'status': f'Extracting Graph data (this may take a while)...'})
-                graph_manager.add_documents_to_graph(chunks)
-                # Mark completion
-                graph_manager.mark_as_completed(file_hash)
+                success = graph_manager.add_documents_to_graph(chunks)
+                # Mark completion only if successful
+                if success:
+                    graph_manager.mark_as_completed(file_hash)
         
         return {
             "status": "completed", 

@@ -76,14 +76,15 @@ class GraphStoreManager:
         except Exception as e:
             print(f"❌ Failed to initialize Graph Transformer: {e}")
 
-    def add_documents_to_graph(self, documents: List[Document]):
+    def add_documents_to_graph(self, documents: List[Document]) -> bool:
         """
         Extract entities/relationships and add to Neo4j.
+        Returns True if successful, False otherwise.
         """
         if not self.graph or not self.llm_transformer:
             if getattr(settings, "ENABLE_GRAPHRAG", False):
                 print("⚠ Graph integration failed initialization. Skipping.")
-            return
+            return False
 
         print(f"\n🕸️ Extracting graph data from {len(documents)} documents...")
         print("  (This requires heavy LLM processing and may take time...)")
@@ -112,7 +113,7 @@ class GraphStoreManager:
 
         if not valid_graph_documents:
             print("⚠ No valid graph data extracted from any chunks.")
-            return
+            return False
 
         print(f"✓ Extracted {len(valid_graph_documents)} valid graph segments")
         
@@ -120,8 +121,10 @@ class GraphStoreManager:
             # Store in Neo4j
             self.graph.add_graph_documents(valid_graph_documents)
             print("✓ Graph data successfully stored in Neo4j")
+            return True
         except Exception as e:
             print(f"❌ Error storing graph documents in Neo4j: {e}")
+            return False
 
     
     def query_graph(self, query: str, llm=None) -> str:

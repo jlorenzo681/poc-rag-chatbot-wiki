@@ -77,12 +77,34 @@ class SimpleGraphTransformer:
                 head_id = r.get("head")
                 tail_id = r.get("tail")
                 
+                # Handling unhashable types (lists) if LLM returns a list of entities
+                if isinstance(head_id, list):
+                    head_id = head_id[0] if head_id else "Unknown"
+                if isinstance(tail_id, list):
+                    tail_id = tail_id[0] if tail_id else "Unknown"
+                
+                # Convert to string to ensure hashability (e.g. if numbers)
+                head_id = str(head_id)
+                tail_id = str(tail_id)
+
                 if not head_id or not tail_id:
                     continue
                     
                 head_type = r.get("head_type", "Concept")
                 tail_type = r.get("tail_type", "Concept")
+                
+                if isinstance(head_type, list):
+                    head_type = head_type[0] if head_type else "Concept"
+                if isinstance(tail_type, list):
+                    tail_type = tail_type[0] if tail_type else "Concept"
+                    
+                head_type = str(head_type)
+                tail_type = str(tail_type)
+                
                 rel_type = r.get("relation", "RELATED_TO")
+                if isinstance(rel_type, list):
+                     rel_type = rel_type[0] if rel_type else "RELATED_TO"
+                rel_type = str(rel_type)
                 
                 # Create/Get Nodes
                 if head_id not in nodes_dict:
